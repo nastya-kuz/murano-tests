@@ -28,7 +28,6 @@ def step(browser, environment_name):
     page = EnvironmentsPage(browser.driver)
     page.create_environment(environment_name)
 
-    page.Refresh()
     page.Link(environment_name).Click()
     browser.page = ServicesPage(browser.driver)
 

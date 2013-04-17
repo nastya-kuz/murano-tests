@@ -41,10 +41,10 @@ class ObjectsLibrary:
         objects = tree.getroot()
         self.objects = []
         for element in objects:
-            object = {}
+            obj = {}
             for parameter in element:
-                object.update({parameter.tag: parameter.text})
-            self.objects.append(object)
+                obj.update({parameter.tag: parameter.text})
+            self.objects.append(obj)
 
     def get_object(self, name):
         """

@@ -6,6 +6,11 @@
   </object>
   <object>
      <type>Button</type>
+     <name>Create</name>
+     <parameter>//input[@value='Create']</parameter>
+  </object>
+  <object>
+     <type>Button</type>
      <name>Delete</name>
      <parameter>services__row_%s__action_delete</parameter>
   </object>
