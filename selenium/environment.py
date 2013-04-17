@@ -33,6 +33,6 @@ def before_scenario(context, scenario):
 
 
 def before_step(context, step):
-    screenshot_name = "%s_%s.png".format(context.test_case, step)
+    screenshot_name = "%s_%s.png" % (context.test_case, step)
     if context.screenshots:
         context.driver.save_screenshot(screenshot_name)
