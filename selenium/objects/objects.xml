@@ -1,0 +1,7 @@
+<objects>
+  <object>
+     <type>Button</type>
+     <name>Create</name>
+     <parameter>//input[@value='Create']</parameter>
+  </object>
+</objects>
