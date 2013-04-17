@@ -14,7 +14,7 @@
 # limitations under the License.
 
 import ConfigParser
-import page
+import boffin.page as page
 
 
 class LoginPage(page.Page):

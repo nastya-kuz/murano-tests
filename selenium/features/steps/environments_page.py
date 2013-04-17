@@ -15,7 +15,7 @@
 
 import re
 from services_page import ServicesPage
-import page
+import boffin.page as page
 
 
 class EnvironmentsPage(page.Page):
