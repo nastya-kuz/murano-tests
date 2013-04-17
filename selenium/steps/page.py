@@ -197,7 +197,7 @@ class Page:
         """
         lib_name = "objects/objects.xml"
         if self.name:
-            lib_name = "objects/%s.xml".format(self.name)
+            lib_name = "objects/%s.xml" % self.name
         lib = ObjectsLibrary(lib_name)
         if lib.get_object(name):
             name = lib.get_object(name)
