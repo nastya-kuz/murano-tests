@@ -43,7 +43,7 @@ def step(browser, ad_name, ad_count=1):
                   '1-dc_count': ad_count,
                   '1-adm_password': "P@ssw0rd",
                   '1-recovery_password': "P@ssw0rd2"}
-    browser.page.create_service("Active Directory", parameters)
+    browser.page.create_service('Active Directory', parameters)
 
 
 @when('I create IIS service "{iis_name}" without domain')
@@ -52,7 +52,7 @@ def step(browser, iis_name, iis_domain=''):
     parameters = {'1-iis_name': iis_name,
                   '1-adm_password': "P@ssw0rd",
                   '1-iis_domain': iis_domain}
-    browser.page.create_service("Internet Information Services", parameters)
+    browser.page.create_service('Internet Information Services', parameters)
 
 
 @when('I delete environment "{environment_name}"')

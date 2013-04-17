@@ -32,12 +32,7 @@ class ServicesPage(page.Page):
             try:
                 self.EditBox(key).Set(parameters[key])
             except:
-                pass
-            try:
                 self.DropDownList(key).Set(parameters[key])
-            except:
-                pass
-
         self.Button('Create').Click()
 
     def delete_service(self, name):

@@ -160,8 +160,8 @@ class DropDownListClass:
             try:
                 Select(self.select).select_by_visible_text(value)
             except:
-                LOG.error("Can not select element %s from drop down list."
-                          .format(value))
+                message = "Can not select element %s from drop down list."
+                LOG.error(message % value)
 
     def Text(self):
         if self.select:
