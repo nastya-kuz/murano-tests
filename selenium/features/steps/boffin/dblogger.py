@@ -43,7 +43,7 @@ class DBLogger:
     def test_suite_start(self, suite_name):
         self.test_suite = str(suite_name)
         self.logger.info("Test Suite started.",
-                         extra={'suite_name': suite_name})
+                         extra={'suite_name': self.test_suite})
 
     def test_suite_finish(self):
         self.logger.info("Test Suite finished.",
@@ -52,12 +52,12 @@ class DBLogger:
     def test_case_start(self, test_case_name):
         self.test_case = str(test_case_name)
         self.logger.info("Test Case started.",
-                         extra={'test_case_name': test_case_name,
+                         extra={'test_case_name': self.test_case,
                                 'test_suite': self.test_suite})
 
-    def test_case_finish(self, test_case_name):
+    def test_case_finish(self):
         self.logger.info("Test Case finished.",
-                         extra={'test_case_name': test_case_name,
+                         extra={'test_case_name': self.test_case,
                                 'test_suite': self.test_suite})
 
     def save_screenshot(self, base64_screenshot):
