@@ -27,6 +27,8 @@ class DBLogger:
     
     dbhost = None
     logger = None
+    test_suite = "Test Suite"
+    test_case = "Test Case"
 
     def __init__(self, name='DBLogger', dbhost = 'localhost'):
         """
@@ -63,7 +65,7 @@ class DBLogger:
         self.logger.info("Screenshot",
                          extra={'test_suite': self.test_suite,
                                 'test_case': self.test_case,
-                                'screenshot': base64_screenshot})
+                                'screenshot': str(base64_screenshot)})
 
     def info(self, message):
         " wrapper for standard logger interface "
