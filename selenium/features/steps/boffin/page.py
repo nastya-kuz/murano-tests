@@ -46,7 +46,7 @@ class Page:
         context.driver.implicitly_wait(0.1)
         self.driver = context.driver
 
-        db_host = context.get('dblogger_host', None)
+        db_host = getattr(context, 'dblogger_host', None)
         context.logger = dblogger.DBLogger(dbhost = db_host)
         self.context = context
 
