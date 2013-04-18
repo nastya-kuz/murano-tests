@@ -91,6 +91,17 @@ def step(browser, link_text):
 def step(browser, link_text):
     assert not browser.page.Link(link_text).isPresented()
 
+
+@then('service name should be equal to "{service_name}"')
+def step(browser, service_name):
+    assert browser.page.TableCell('Name').Text() == service_name
+
+
+@then('service domain should be equal to "{service_domain}"')
+def step(browser, service_domain):
+    assert browser.page.TableCell('Domain').Text() == service_domain
+
+
 @then('{element} "{element_name}" has {parameter}')
 def step(browser, element, element_name, parameter):
     page = browser.page

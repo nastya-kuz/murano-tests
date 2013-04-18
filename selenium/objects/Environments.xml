@@ -2,7 +2,7 @@
   <object>
      <type>Button</type>
      <name>More</name>
-     <parameter>.//*[@id='windc__row__%s']/td[4]/div/a[2]</parameter>
+     <parameter>.//*[@id='tabula__row__%s']/td[4]/div/a[2]</parameter>
   </object>
   <object>
      <type>Button</type>
@@ -12,16 +12,16 @@
   <object>
      <type>Button</type>
      <name>Delete</name>
-     <parameter>windc__row_%s__action_delete</parameter>
+     <parameter>tabula__row_%s__action_delete</parameter>
   </object>
   <object>
      <type>Button</type>
      <name>Deploy</name>
-     <parameter>windc__row_%s__action_deploy</parameter>
+     <parameter>tabula__row_%s__action_deploy</parameter>
   </object>
   <object>
      <type>TableCell</type>
      <name>Status</name>
-     <parameter>.//*[@id='windc__row__%s']/td[3]</parameter>
+     <parameter>.//*[@id='tabula__row__%s']/td[3]</parameter>
   </object>
 </objects>
