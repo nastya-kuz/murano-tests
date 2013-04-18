@@ -17,13 +17,13 @@
 import logging
 import elements
 import objects_library
+import dblogger
 
 
-logging.basicConfig()
-LOG = logging.getLogger(' Page object: ')
 """
     Disable selenium logging:
 """
+logging.basicConfig()
 logger = logging.getLogger('selenium.webdriver.remote.remote_connection')
 logger.setLevel('ERROR')
 
@@ -37,14 +37,18 @@ error_msg = """
 class Page:
 
     driver = None
-    timeout = 30
+    timeout = 60
     lib = None
     name = None
 
-    def __init__(self, driver):
-        driver.set_page_load_timeout(self.timeout)
-        driver.implicitly_wait(0.1)
-        self.driver = driver
+    def __init__(self, context):
+        context.driver.set_page_load_timeout(self.timeout)
+        context.driver.implicitly_wait(0.1)
+        self.driver = context.driver
+
+        db_host = context.get('dblogger_host', None)
+        context.logger = dblogger.DBLogger(dbhost = db_host)
+        self.context = context
 
     def _find_element(self, name, parameter=None):
         """
@@ -53,10 +57,12 @@ class Page:
             xpath, id, name or pertial link text.
             If parameter != None will be used name % parameter
         """
+
         lib_name = "objects/objects.xml"
         if self.name:
             lib_name = "objects/%s.xml" % self.name
         lib = objects_library.ObjectsLibrary(lib_name)
+
         if lib.get_object(name):
             name = lib.get_object(name)
 
@@ -90,7 +96,7 @@ class Page:
             except:
                 pass
 
-        LOG.error(error_msg % name)
+        self.context.logger.error(error_msg % name)
         return None
 
     def Open(self, url):
@@ -134,3 +140,5 @@ class Page:
 
         for step in steps:
             self.Button(step).Click()
+
+        self.driver.refresh()

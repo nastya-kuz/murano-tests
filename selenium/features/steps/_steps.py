@@ -13,38 +13,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 from login_page import LoginPage
 from environments_page import EnvironmentsPage
 from services_page import ServicesPage
 from selenium import webdriver
 from behave import *
 
-logging.basicConfig()
-LOG = logging.getLogger(' Tests: ')
-
 
 @given('browser with Environments page')
 def step(browser):
     browser.page.Navigate('Project>Environments')
-    browser.page = EnvironmentsPage(browser.driver)
+    browser.page = EnvironmentsPage(browser)
 
 
 @given('browser with environment "{environment_name}" details page')
 def step(browser, environment_name):
     browser.page.Navigate("Project>Environments>%s" % environment_name)
-    browser.page = ServicesPage(browser.driver)
+    browser.page = ServicesPage(browser)
 
 
 @given('browser with new environment "{environment_name}" details page')
 def step(browser, environment_name):
     page = browser.page
     page.Navigate("Project>Environments")
-    page = EnvironmentsPage(browser.driver)
+    page = EnvironmentsPage(browser)
     page.create_environment(environment_name)
 
     page.Link(environment_name).Click()
-    browser.page = ServicesPage(browser.driver)
+    browser.page = ServicesPage(browser)
 
 
 @when('I create environment "{environment_name}"')

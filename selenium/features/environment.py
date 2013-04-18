@@ -17,6 +17,7 @@
 import logging
 from datetime import datetime
 from steps.login_page import LoginPage
+from steps.boffin.dblogger import DBLogger
 from selenium import webdriver
 
 LOG = logging.getLogger(__name__)
@@ -24,13 +25,18 @@ LOG = logging.getLogger(__name__)
 
 def before_all(context):
     context.screenshots = True
+    context.dblogger_host = 'localhost'
     context.driver = webdriver.Firefox()
-    context.page = LoginPage(context.driver)
+    context.page = LoginPage(context)
     context.page.login()
+
+    context.logger.test_suite_start("WEB UI sanity tests")
+    
 
 
 def after_all(context):
     context.driver.close()
+    context.logger.test_suite_finish()
 
 
 def before_tag(context, tag):
@@ -41,14 +47,14 @@ def before_tag(context, tag):
 def after_tag(context, tag):
     if tag == 'time':
         result = datetime.now() - context.start
-        LOG.info("Test Case: " + str(result))
+        LOG.info("Elapsed time: " + str(result))
 
 
 def before_scenario(context, scenario):
-    context.test_case = scenario
+    context.logger.test_case_start(scenario)
 
 
 def before_step(context, step):
-    screenshot_name = "%s_%s.png" % (context.test_case, step)
     if context.screenshots:
-        context.driver.save_screenshot(screenshot_name)
+        screenshot = context.driver.get_screenshot_as_base64()
+        context.logger.save_screenshot(screenshot)

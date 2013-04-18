@@ -32,5 +32,3 @@ class LoginPage(page.Page):
         self.EditBox('password').Set(password)
         xpath = "//button[@type='submit']"
         self.Button(xpath).Click()
-
-        return self
