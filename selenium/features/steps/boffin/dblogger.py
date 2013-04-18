@@ -41,7 +41,7 @@ class DBLogger:
             self.logger.addHandler(MongoHandler(host=dbhost))
 
     def test_suite_start(self, suite_name):
-        self.test_suite = suite_name
+        self.test_suite = str(suite_name)
         self.logger.info("Test Suite started.",
                          extra={'name': suite_name})
 
@@ -50,7 +50,7 @@ class DBLogger:
                          extra={'name': self.test_suite})
 
     def test_case_start(self, test_case_name):
-        self.test_case = test_case_name
+        self.test_case = str(test_case_name)
         self.logger.info("Test Case started.",
                          extra={'name': test_case_name,
                                 'test_suite': self.test_suite})
