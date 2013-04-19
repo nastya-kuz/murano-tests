@@ -52,9 +52,3 @@ def after_tag(context, tag):
 
 def before_scenario(context, scenario):
     context.logger.test_case_start(scenario)
-
-
-def before_step(context, step):
-    if context.screenshots:
-        screenshot = context.driver.get_screenshot_as_base64()
-        context.logger.save_screenshot(screenshot)

@@ -19,23 +19,22 @@ from log4mongo.handlers import MongoHandler
 
 class DBLogger:
     """
-        This class allow to save all log messages to the data base
+        This class allows to save all log messages to the data base
         based on Mango DB - it is the simple data base with good interfaces.
         Please, see for more detailed information:
         https://github.com/log4mongo
     """
-    
-    dbhost = None
+
     logger = None
     test_suite = "Test Suite"
     test_case = "Test Case"
 
-    def __init__(self, name='DBLogger', dbhost = 'localhost'):
+    def __init__(self, dbhost = 'localhost'):
         """
             Initialization of the Data Base Logger.
             if dbhost == None this class will not use Data Base.
         """
-        self.logger = logging.getLogger(name)
+        self.logger = logging.getLogger('DBLogger')
 
         if dbhost:
             self.logger.addHandler(MongoHandler(host=dbhost))
@@ -55,10 +54,11 @@ class DBLogger:
                          extra={'test_case_name': self.test_case,
                                 'test_suite': self.test_suite})
 
-    def test_case_finish(self):
+    def test_case_finish(self, result='PASSED'):
         self.logger.info("Test Case finished.",
                          extra={'test_case_name': self.test_case,
-                                'test_suite': self.test_suite})
+                                'test_suite': self.test_suite,
+                                'result': str(result)})
 
     def save_screenshot(self, base64_screenshot):
         " This function allow to save screenshots in database "

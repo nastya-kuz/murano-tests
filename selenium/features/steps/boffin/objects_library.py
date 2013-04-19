@@ -18,23 +18,22 @@ import xml.etree.ElementTree as ET
 
 
 class ObjectsLibrary:
-    file = None
     objects = []
 
-    def __init__(self, file_name='objects/objects.xml'):
+    def __init__(self, file_name=None):
         """
             Initialization of the Objects Library.
             Read objects descriptions from XML file.
         """
-        self.file = file_name
-        tree = ET.parse(self.file)
-        objects = tree.getroot()
-        self.objects = []
-        for element in objects:
-            obj = {}
-            for parameter in element:
-                obj.update({parameter.tag: parameter.text})
-            self.objects.append(obj)
+
+        if file_name:
+            tree = ET.parse(file_name)
+            objects = tree.getroot()
+            for element in objects:
+                obj = {}
+                for parameter in element:
+                    obj.update({parameter.tag: parameter.text})
+                self.objects.append(obj)
 
     def get_object(self, name):
         """

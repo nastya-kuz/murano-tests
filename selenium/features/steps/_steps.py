@@ -20,6 +20,16 @@ from selenium import webdriver
 from behave import *
 
 
+def check(browser, condition):
+    if condition:
+        browser.logger.test_case_finish()
+    else:
+        screenshot = browser.driver.get_screenshot_as_base64()
+        browser.dblogger.save_screenshot(screenshot)
+        browser.dblogger.test_case_finish('FAILED')
+    assert condition
+
+
 @given('browser with Environments page')
 def step(browser):
     browser.page.Navigate('Project>Environments')
@@ -80,22 +90,24 @@ def step(browser, service_name):
 
 @then('page should contain link "{link_text}"')
 def step(browser, link_text):
-    assert browser.page.Link(link_text).isPresented()
+    check(browser, browser.page.Link(link_text).isPresented())
 
 
 @then('page should not contain link "{link_text}"')
 def step(browser, link_text):
-    assert not browser.page.Link(link_text).isPresented()
+    check(browser, not browser.page.Link(link_text).isPresented())
 
 
 @then('service name should be equal to "{service_name}"')
 def step(browser, service_name):
-    assert browser.page.TableCell('Name').Text() == service_name
+    text = browser.page.TableCell('Name').Text()
+    check(browser, text == service_name)
 
 
 @then('service domain should be equal to "{service_domain}"')
 def step(browser, service_domain):
-    assert browser.page.TableCell('Domain').Text() == service_domain
+    text = browser.page.TableCell('Domain').Text()
+    check(browser, text == service_domain)
 
 
 @then('{element} "{element_name}" has {parameter}')
@@ -110,9 +122,8 @@ def step(browser, element, element_name, parameter):
     progress_bar = '<img src="/static/dashboard/img/loading.gif">'
 
     if 'status' in parameter:
-        assert parameter[8:-1] in status
+        check(browser, parameter[8:-1] in status)
     elif 'no progress bar' in parameter:
-        assert not progress_bar in status
+        check(browser, not progress_bar in status)
     elif 'progress bar' in parameter:
-        assert progress_bar in status
-
+        check(browser, progress_bar in status)
