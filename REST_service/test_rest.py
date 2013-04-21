@@ -9,7 +9,7 @@ from funkload.FunkLoadTestCase import FunkLoadTestCase
 logging.basicConfig()
 LOG = logging.getLogger(' REST service tests')
 
-class TestSuite(unittest2.TestCase):
+class TestSuite(FunkLoadTestCase):
     
     def setUp(self):
         self.max_count = 200
