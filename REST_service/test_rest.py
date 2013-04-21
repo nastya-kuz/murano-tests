@@ -16,7 +16,6 @@ class TestSuite(FunkLoadTestCase):
 
     @classmethod
     def setUpClass(self):
-        self.url = self.conf_get('main', 'url')
         self.headers = {'X-Auth-Token': '7414eb76950b8d2b90b4c5a157f7f148'}
 
         response = requests.get(self.url, headers=self.headers)
