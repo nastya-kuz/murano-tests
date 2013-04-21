@@ -20,7 +20,8 @@ class TestSuite(FunkLoadTestCase):
 
     def test_create_environment(self):
         body = '{"name": "Test"}'
-        response = self.post(self.url, headers=self.headers, data=body)
+        response = self.post(self.url, params=[['headers', self.headers],
+                                               ['data', body]])
 
         LOG.error(response)
         assert response == Null
