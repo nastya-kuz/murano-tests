@@ -2,6 +2,7 @@
 
 
 import unittest2
+import requests
 import json
 import logging
 from funkload.FunkLoadTestCase import FunkLoadTestCase
@@ -20,11 +21,10 @@ class TestSuite(FunkLoadTestCase):
 
     def test_create_environment(self):
         body = '{"name": "Test"}'
-        response = self.post(self.url, params=[['headers', self.headers],
-                                               ['data', body]])
+        response = requests.post(self.url, headers=self.headers, data=body)
 
         LOG.error(response)
-        assert response == Null
+        assert response == None
 
 
 if __name__ == '__main__':
