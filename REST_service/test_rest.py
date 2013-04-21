@@ -10,14 +10,10 @@ logging.basicConfig()
 LOG = logging.getLogger(' REST service tests')
 
 class TestSuite(FunkLoadTestCase):
-    
+
     def setUp(self):
-        self.max_count = 200
         self.url = self.conf_get('main', 'url')
         self.headers = {'X-Auth-Token': '3685674500ff83eb62b5c5d453e0cacd'}
-        self.lock_list = []
-        self.responses = []
-        self.state = 'stop'
 
     def tearDown(self):
         self.headers = {}
