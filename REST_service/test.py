@@ -13,7 +13,7 @@ class TestSuite(unittest2.TestCase):
     
     def setUp(self):
         self.max_count = 200
-        self.url = 'http://localhost:8082/environments'
+        self.url = self.conf_get('main', 'url')
         self.headers = {'X-Auth-Token': '3685674500ff83eb62b5c5d453e0cacd'}
         self.lock_list = []
         self.responses = []
