@@ -23,6 +23,9 @@ class TestSuite(FunkLoadTestCase):
         for env in response.json:
             self.action_delete_environment(env.id)
 
+    def setUp(self):
+        self.url = self.conf_get('main', 'url')
+
     def action_create_environment(self):
         headers = self.headers
         headers.update({'Content-Type': 'application/json'})
