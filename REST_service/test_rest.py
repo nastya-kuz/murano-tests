@@ -19,8 +19,8 @@ class TestSuite(FunkLoadTestCase):
     def setUp(self):
         self.url = self.conf_get('main', 'url')
         self.action_set_headers()
-        if not self.clear:
-            self.action_clear()
+        #if not self.clear:
+        #    self.action_clear()
 
     def action_clear(self):
         self.clear = True
