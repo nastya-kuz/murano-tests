@@ -39,7 +39,8 @@ class TestSuite(FunkLoadTestCase):
         name = "Environment" + str(random.randint(1, 10000))
         body = '{"name": "%s"}' % name
 
-        response = self.post(self.url, params=Data('application/json', body))
+        response = self.post(self.url, params=Data('application/json', body),
+                             description="Create Environment")
         assert response.code == 200
         
         result = json.loads(self.getBody())
@@ -48,7 +49,7 @@ class TestSuite(FunkLoadTestCase):
     def action_delete_environment(self, env_id):
         self.action_set_headers()
         url = self.url + '/' + str(env_id)
-        response = self.delete(url)
+        response = self.delete(url, description="Delete Environment")
         assert response.code == 200
 
     def action_get_session_for_environment(self, env_id):
@@ -56,7 +57,7 @@ class TestSuite(FunkLoadTestCase):
         self.setHeader('Content-Type', 'application/json')
 
         url = self.url + '/' + str(env_id) + '/configure'
-        response = self.post(url)
+        response = self.post(url, description="Get Session For Environment")
         assert response.code == 200
 
         result = json.loads(self.getBody())
@@ -75,7 +76,8 @@ class TestSuite(FunkLoadTestCase):
 
         url = self.url + '/' + env_id + '/activeDirectories'
 
-        response = self.post(url, params=Data('application/json', body))
+        response = self.post(url, params=Data('application/json', body),
+                             description="Create AD service")
         assert response.code == 200
 
     def action_create_service_iis(self, env_id, session_id, name='iis'):
@@ -89,7 +91,8 @@ class TestSuite(FunkLoadTestCase):
                 '"location": "temp","units":[{"id":"4334"}]}') % name
 
         url = self.url + '/' + env_id + '/webServers'
-        response = self.post(url, params=Data('application/json', body))
+        response = self.post(url, params=Data('application/json', body),
+                             description="Create IIS service")
         assert response.code == 200
 
     def test_create_and_delete_environment(self):
@@ -97,7 +100,7 @@ class TestSuite(FunkLoadTestCase):
         self.action_delete_environment(env_id)
 
     def test_get_list_of_environments(self):
-        response = self.get(self.url)
+        response = self.get(self.url, description="Get List Of Environments")
         assert response.code == 200
 
     def test_create_environment_with_ad(self):
