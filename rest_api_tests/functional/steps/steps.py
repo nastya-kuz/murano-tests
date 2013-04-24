@@ -2,6 +2,7 @@ import requests
 import json
 import logging
 
+logging.basicConfig()
 LOG = logging.getLogger(__name__)
 
 def environment_get_id(context, env_name):
@@ -133,7 +134,7 @@ def session_delete(context, env_name, env_id=None, session_id=None):
         env_id = environment_get_id(context, env_name)
     url = '%s/environments/%s/sessions/%s' % (context.url, env_id, session_id)
     response = requests.request('DELETE', url=url, headers=context.headers)
-    context.LOG.debug("session delete all response:%s"% response._content)
+    LOG.debug("session delete all response:%s"% response._content)
     assert response.status_code is 200
 
 

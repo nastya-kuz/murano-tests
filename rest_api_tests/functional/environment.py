@@ -1,14 +1,14 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# import requests
-# import json
 
-import logging, json, random
+import logging
+import jeson
+import random
+import ConfigParser
 from behave import *
 
-import ConfigParser
-# import json
 
+project = 'murano'
 CONFIG_PATH = 'config.ini'
 adminPassword = 'SwordFish_1'
 recoveryPassword='SwordFish_2'
@@ -27,10 +27,17 @@ def init_config():
 
 def before_all(context):
     context.CONFIG = init_config()
-    context.url = context.CONFIG.get(u'keero', u'url')
-    context.keero_id = context.CONFIG.get(u'keystone', u'x-auth-token')
-    context.headers = {u'X-Auth-Token': context.keero_id,
-                       u'Content-type': u'application/json'}
+    context.url = context.CONFIG.get(project, 'url')
+    user = context.CONFIG.get('keystone', 'user')
+    password = context.CONFIG.get('keystone', 'password')
+    keystone_url = context.CONFIG.get('keystone', 'url')
+
+    keystone_client = ksclient.Client(username=user, password=password,
+                                      tenant_name=user, auth_url=keystone_url)
+    token = keystone_client.auth_token
+
+    context.headers = {'X-Auth-Token': token,
+                       'Content-type': 'application/json'}
 
     context.ad = AD()
     context.iis = IIS()
@@ -42,7 +49,7 @@ class AD:
     domain = name
     configuration = 'standalone'
     units = []
-    adminPassword = 'SwordFish_1' # passwords._generate_salt(8)
+    adminPassword = 'SwordFish_1'
 
     def __init__(self , units='', name='acme.dc'):
         self.name = name

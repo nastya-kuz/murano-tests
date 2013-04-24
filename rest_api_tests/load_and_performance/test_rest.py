@@ -1,16 +1,14 @@
-# -*- coding: utf-8 -*-
-
-import unittest2
-import requests
+import unittest
 import json
-import time
 import random
 import logging
+import ConfigParser
 from funkload.FunkLoadTestCase import FunkLoadTestCase
 from funkload.utils import Data
 
 logging.basicConfig()
 LOG = logging.getLogger(' REST service tests')
+
 
 class TestSuite(FunkLoadTestCase):
 
@@ -19,26 +17,27 @@ class TestSuite(FunkLoadTestCase):
     def setUp(self):
         self.url = self.conf_get('main', 'url')
         self.action_set_headers()
-        #if not self.clear:
-        #    self.action_clear()
-
-    def action_clear(self):
-        self.clear = True
-        self.get(self.url)
-        result = json.loads(self.getBody())
-        environments = result['environments']
-
-        for env in environments:
-            self.action_delete_environment(env['id'])
 
     def action_set_headers(self):
         self.clearHeaders()
-        self.setHeader('X-Auth-Token', '3d4df76e5e12f4a8593895c6773822b2')
+        config = ConfigParser.RawConfigParser()
+        config.read('config.ini')
+        user = config.get('keystone', 'user')
+        password = config.get('keystone', 'password')
+        keystone_url = config.get('keystone', 'url')
+
+        keystone_client = ksclient.Client(username=user,
+                                          password=password,
+                                          tenant_name=user,
+                                          auth_url=keystone_url)
+        token = keystone_client.auth_token
+
+        self.setHeader('X-Auth-Token', token)
 
     def action_create_environment(self):
         self.setHeader('Content-Type', 'application/json')
         name = "Environment" + str(random.randint(1, 10000))
-        body = '{"name": "%s=%s"}' % (name, time.clock())
+        body = '{"name": "%s"}' % name
 
         response = self.post(self.url, params=Data('application/json', body))
         assert response.code == 200
@@ -133,5 +132,6 @@ class TestSuite(FunkLoadTestCase):
             # 30 %
             return self.test_create_environment_with_iis()
 
+
 if __name__ == '__main__':
-    unittest2.main()
+    unittest.main()
