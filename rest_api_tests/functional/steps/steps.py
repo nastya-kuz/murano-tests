@@ -2,13 +2,15 @@ import requests
 import json
 import logging
 
+
 logging.basicConfig()
 LOG = logging.getLogger(__name__)
 
+
 def environment_get_id(context, env_name):
     for e in environment_get_all(context): 
-        if e[u'name'] == env_name:
-            return e[u'id']
+        if e['name'] == env_name:
+            return e['id']
 
 
 def environment_get_all(context):
@@ -28,7 +30,7 @@ def environment_delete(context,env_id):
     assert response.status_code is 200
 
 
-@when(u'I create environment "{env_name}"')
+@when('I create environment "{env_name}"')
 def environment_action_create(context, env_name):
     body = json.dumps({"name": env_name})
     url = "%s/environments" % context.url
@@ -38,7 +40,7 @@ def environment_action_create(context, env_name):
     assert response.status_code is 200
 
 
-@when(u'I delete environment "{env_name}"')
+@when('I delete environment "{env_name}"')
 def environment_action_delete(context, env_name):
     env_id = environment_get_id(context, env_name)
     if env_id:
@@ -47,30 +49,30 @@ def environment_action_delete(context, env_name):
         LOG.debug('Cannot delete environment '+env_name+' - nothing to delete')
 
 
-@when(u'I delete all environments')
+@when('I delete all environments')
 def environment_delete_all(context):
     for env in environment_get_all(context):
         response = environment_delete(context, env['id']) 
 
 
-@when(u'I update environment "{env_name}" to "{env_new_name}"')
+@when('I update environment "{env_name}" to "{env_new_name}"')
 def environment_action_update(context, env_name, env_new_name):
     env_id = environment_get_id(context, env_name)
-    body = json.dumps({u'name': env_new_name})
+    body = json.dumps({'name': env_new_name})
     url = '%s/environments/%s' % (context.url, env_id)
-    response = requests.request(u'PUT', url=url,
+    response = requests.request('PUT', url=url,
                                 headers=context.headers,
                                 data=body)
     assert response.status_code is 200
 
 
-@when(u'I deploy environment "{env_name}"')
-@then(u'I deploy environment "{env_name}"')
+@when('I deploy environment "{env_name}"')
+@then('I deploy environment "{env_name}"')
 def environment_action_deploy(context, env_name):
     session_deploy(context, env_name)
 
 
-@then(u'environments should {condition} "{param}" {feature}')
+@then('environments should {condition} "{param}" {feature}')
 def environment_check(context, condition, param, feature):
     if feature == "environment(s)":
         env_list = environment_get_all(context)
@@ -81,15 +83,15 @@ def environment_check(context, condition, param, feature):
             assert len(env_list) != int(param)
 
 
-@when(u'I {action} session for environment "{env_name}"')
+@when('I {action} session for environment "{env_name}"')
 def session_action(context, action, env_name):
-    if action == u'open':
+    if action == 'open':
         session_open(context, env_name)
-    if action == u'deploy':
+    if action == 'deploy':
         session_deploy(context, env_name)
-    if action == u'delete':
+    if action == 'delete':
         session_delete(context, env_name)
-    if action in [u'can\'t open', u'can not open']:
+    if action in ['can\'t open', 'can not open']:
         try:
             session_open(context, env_name=env_name)
         except:
@@ -102,17 +104,11 @@ def session_open(context, env_name, env_id=None):
 
     url = '%s/environments/%s/configure' % (context.url, env_id)
     response = requests.request('POST', url=url, headers=context.headers)
-    assert response.status_code is 200
-    env_session_id = response.json()[u'id']
 
-    if len(env_session_id) is not 0:
-        context.CONFIG.set(u'keero',
-                           u'x-configuration-session',
-                           env_session_id)
-        context.session_id = env_session_id
-        return env_session_id
-    else:
-        assert False
+    result = response.json()
+    context.session_id = result['id']
+
+    assert response.status_code is 200
 
 
 def session_deploy(context, env_name, env_id=None):
@@ -120,10 +116,8 @@ def session_deploy(context, env_name, env_id=None):
         env_id = environment_get_id(context, env_name)
 
     session_id = session_get_open(context, env_name, env_id)
-
     url = '%s/environments/%s/sessions/%s/deploy' % \
                     (context.url, env_id, session_id)
-    context.headers[u'X-Configuration-Session'] = session_id
 
     response = requests.request('POST', url=url, headers=context.headers)
     assert response.status_code is 200
@@ -134,22 +128,21 @@ def session_delete(context, env_name, env_id=None, session_id=None):
         env_id = environment_get_id(context, env_name)
     url = '%s/environments/%s/sessions/%s' % (context.url, env_id, session_id)
     response = requests.request('DELETE', url=url, headers=context.headers)
-    LOG.debug("session delete all response:%s"% response._content)
     assert response.status_code is 200
 
 
-@when(u'I {action} sessions for environment "{env_name}"')
+@when('I {action} sessions for environment "{env_name}"')
 def session_delete_all(context, action, env_name, env_id=None):
     if not env_id:
         env_id = environment_get_id(context, env_name)
     sessions = session_get_all(context, env_name, env_id)
-    if action == u'delete all':    
+    if action == 'delete all':    
         for session in sessions:
-            session_delete(context, env_name, env_id, session[u'id'])
-    if action == u'try delete all':
+            session_delete(context, env_name, env_id, session['id'])
+    if action == 'try delete all':
         try:    
             for session in sessions:
-                session_delete(context, env_name, env_id, session[u'id'])
+                session_delete(context, env_name, env_id, session['id'])
         except:
             assert True
 
@@ -162,7 +155,7 @@ def session_get_all(context, env_name, env_id=None):
     response = requests.request('GET', url=url, headers=context.headers)
     assert response.status_code is 200
     result = response.json()
-    return result[u'sessions']
+    return result['sessions']
 
 
 def session_get_id_by_state(context, state, env_name, env_id=None):
@@ -170,8 +163,8 @@ def session_get_id_by_state(context, state, env_name, env_id=None):
         env_id = environment_get_id(context, env_name)
     sessions = session_get_all(context, env_name, env_id)
     for s in sessions:
-        if s[u'state'] == state:
-            return s[u'id']
+        if s['state'] == state:
+            return s['id']
 
 
 def session_get_id_by_user(context, user, env_name, env_id=None):
@@ -179,37 +172,37 @@ def session_get_id_by_user(context, user, env_name, env_id=None):
         env_id = environment_get_id(context, env_name)
     sessions = session_get_all(context, env_name, env_id)
     for s in sessions:
-        if s[u'user'] == user:
-            return s[u'id']
+        if s['user'] == user:
+            return s['id']
 
 
 def session_get_open(context, env_name, env_id):
-    session_id = session_get_id_by_state(context, u'open', env_name, env_id)
+    session_id = session_get_id_by_state(context, 'open', env_name, env_id)
     if session_id is None or len(session_id) is 0 :
        session_id = session_open(context, env_name, env_id)
     return session_id
 
 
-@then(u'environment "{env_name}" should {condition} status "{state}"')
-@then(u'environment "{env_name}" should {condition} session "{state}"')  # @UndefinedVariable
+@then('environment "{env_name}" should {condition} status "{state}"')
+@then('environment "{env_name}" should {condition} session "{state}"')
 def session_check(context, env_name, condition, state):
     session_id = session_get_id_by_state(context, state, env_name)
-    if condition in [u'contain', u'have']:
+    if condition in ['contain', 'have']:
         assert session_id
-    if condition in [u'not_contain', u'have_not']:
+    if condition in ['not_contain', 'have_not']:
         assert not session_id
 
 
-@then(u'environment "{env_name}" should {condition} "{count}" session(s)')
+@then('environment "{env_name}" should {condition} "{count}" session(s)')
 def session_check_count(context,env_name, condition, count):
     sessions = session_get_all(context, env_name)
-    if condition == u'contain':
+    if condition == 'contain':
         assert sessions is not None and len(sessions) == int (count)
-    if condition == u'not_contain':
+    if condition == 'not_contain':
         assert sessions is None or len(sessions) != int (count)
 
 
-@when(u'I create "{param}" AD(s) for environment "{env_name}"')
+@when('I create "{param}" AD(s) for environment "{env_name}"')
 def ad_action_create(context, param, env_name):
     if param is None or param == '':
         ad_create(context, env_name)
@@ -218,26 +211,25 @@ def ad_action_create(context, param, env_name):
             ad_create(context, env_name)
 
 
-@when(u'I set AD {item}: "{param}"')
+@when('I set AD {item}: "{param}"')
 def ad_set_item(context, item, param):
-    if item == u'name':
+    if item == 'name':
         context.ad.name = param
-    if item == u'configuration':
+    if item == 'configuration':
         context.ad.configuration = param
-    if item == u'admin password':
+    if item == 'admin password':
         context.ad.adminPassword = param
-    if item == u'master unit with location:':
+    if item == 'master unit with location:':
         context.ad.units.append(ADUnit(is_master=True, location=param))
-    if item == u'secondary unit with location:':
+    if item == 'secondary unit with location:':
         context.ad.units.append(ADUnit(is_master=False, location=param))
 
-    if item == u'credentials':
+    if item == 'credentials':
         cred = param.split('\\')
-        context.ad.credentials = {'username': cred[0],
-                                  'password': cred[1]}
+        context.ad.credentials = {'username': cred[0], 'password': cred[1]}
 
 
-@when(u'I delete AD "{ad_name}" for environment "{env_name}"')
+@when('I delete AD "{ad_name}" for environment "{env_name}"')
 def ad_delete(context, ad_name, env_name, env_id=None, session_id=None):
     if not env_id:
         env_id = environment_get_id(context, env_name)
@@ -245,26 +237,26 @@ def ad_delete(context, ad_name, env_name, env_id=None, session_id=None):
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
 
-    context.headers[u'X-Configuration-Session'] = session_id
+    context.headers['X-Configuration-Session'] = session_id
 
     ad_id = ad_get_id(context, ad_name, env_name, env_id)
 
     url = ('%s/environments/%s/activeDirectories/%s'
-            % (context.url, env_id, ad_id))
+           % (context.url, env_id, ad_id))
 
     response = requests.request('DELETE', url=url, headers=context.headers)
     assert response.status_code is 200
 
 
-@when(u'I delete all AD for environment "{env_name}"')
+@when('I delete all AD for environment "{env_name}"')
 def ad_delete_all(context, env_name, env_id=None, session_id=None):
-    if  env_id is None:
+    if not env_id:
         env_id = environment_get_id(context, env_name)
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
 
     for ad in ad_get_all(context, env_name, env_id):
-        ad_delete(context, ad[u'name'], env_name, env_id, session_id)
+        ad_delete(context, ad['name'], env_name, env_id, session_id)
 
 
 def ad_create(context, env_name, env_id=None, session_id=None):
@@ -274,7 +266,7 @@ def ad_create(context, env_name, env_id=None, session_id=None):
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
 
-    context.headers[u'X-Configuration-Session'] = session_id
+    context.headers['X-Configuration-Session'] = session_id
 
     url = '%s/environments/%s/activeDirectories' % (context.url, env_id)
     body = context.ad.json()
@@ -285,16 +277,16 @@ def ad_create(context, env_name, env_id=None, session_id=None):
     assert response.status_code is 200
 
 
-@when(u'I update AD "{ad_name}" for environment "{env_name}"')
+@when('I update AD "{ad_name}" for environment "{env_name}"')
 def ad_update(context, ad_name, env_name, env_id=None, session_id=None):
-    if  env_id is None:
+    if not env_id:
         env_id = environment_get_id(context, env_name)
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
-    context.headers[u'X-Configuration-Session'] = session_id
+    context.headers['X-Configuration-Session'] = session_id
     ad_id = ad_get_id(context, ad_name, env_name, env_id)
     url = '%s/environments/%s/activeDirectories/%s' \
-            % (context.url, env_id, ad_id)
+                       % (context.url, env_id, ad_id)
     body = context.ad.json()
     response = requests.request('POST', url=url,
                                 headers=context.headers,
@@ -303,28 +295,28 @@ def ad_update(context, ad_name, env_name, env_id=None, session_id=None):
 
 
 def ad_get_all(context, env_name, env_id=None, session_id=None):
-    if  env_id is None:
+    if not env_id:
         env_id = environment_get_id(context, env_name)
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
-    context.headers[u'X-Configuration-Session'] = session_id
+    context.headers['X-Configuration-Session'] = session_id
     url = '%s/environments/%s/activeDirectories' % (context.url, env_id)
     response = requests.request('GET', url=url, headers=context.headers)
     assert response.status_code is 200
     result = response.json()
-    return result[u'activeDirectories']
+    return result['activeDirectories']
 
 
 def ad_get_id(context, ad_name, env_name, env_id=None):
-    if  env_id is None:
+    if not env_id:
         env_id = environment_get_id(context, env_name)
     ad_list = ad_get_all(context, env_name, env_id)
     for ad in ad_list:
-        if ad[u'name'] == ad_name:
-            return ad[u'id']
+        if ad['name'] == ad_name:
+            return ad['id']
 
 
-@then(u'environment "{env_name}" should {condition} AD "{ad_name}"')
+@then('environment "{env_name}" should {condition} AD "{ad_name}"')
 def ad_check(context, condition, env_name, ad_name):
     ad_id = ad_get_id(context, ad_name, env_name)
     if condition == "contain":
@@ -333,43 +325,43 @@ def ad_check(context, condition, env_name, ad_name):
         assert not ad_id
 
 
-@then(u'environment "{env_name}" should {condition} "{count}" {service}(s)')
+@then('environment "{env_name}" should {condition} "{count}" {service}(s)')
 def ad_check_count(context, condition, env_name, count, service):
-    if service == u'AD':
+    if service == 'AD':
         service_list = ad_get_all(context, env_name)
-    if service == u'IIS':
+    if service == 'IIS':
         service_list = iis_get_all(context, env_name)    
-    if condition == u'contain':
-        assert len(service_list) == int (count)
-    if condition == u'not_contain':
-        assert len(service_list) != int (count)
+    if condition == 'contain':
+        assert len(service_list) == int(count)
+    if condition == 'not_contain':
+        assert len(service_list) != int(count)
 
 
-@when (u'I get list of IIS services for environment "{env_name}"') 
-@then (u'I get list of IIS services for environment "{env_name}"') 
+@when ('I get list of IIS services for environment "{env_name}"') 
+@then ('I get list of IIS services for environment "{env_name}"') 
 def iis_get_all(context, env_name, env_id=None, session_id=None):
     if not env_id:
         env_id = environment_get_id(context, env_name)
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
 
-    context.headers[u'X-Configuration-Session'] = session_id
+    context.headers['X-Configuration-Session'] = session_id
     url = '%s/environments/%s/webServers' % (context.url, env_id)
     response = requests.request('GET', url=url, headers=context.headers)
     assert response.status_code == 200
     resault = response.json()
-    return resault[u'webServers']
+    return resault['webServers']
 
 
-@when(u'I set IIS {item}: "{param}"')
+@when('I set IIS {item}: "{param}"')
 def iis_set_item(context, item, param):
-    if item == u'name':
+    if item == 'name':
         context.iis.name = param
-    if item == u'domain':
+    if item == 'domain':
         context.iis.domain = param
 
 
-@when(u'I create "{param}" IIS for environment "{env_name}"')
+@when('I create "{param}" IIS for environment "{env_name}"')
 def iis_action_create(context, param, env_name,env_id=None, session_id=None ):
     if not env_id:
         env_id = environment_get_id(context, env_name)
@@ -377,7 +369,7 @@ def iis_action_create(context, param, env_name,env_id=None, session_id=None ):
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
 
-    context.headers[u'X-Configuration-Session'] = session_id
+    context.headers['X-Configuration-Session'] = session_id
     url = '%s/environments/%s/webServers' % (context.url, env_id)
     body = context.iis.json()
     response = requests.request('POST', url=url,
@@ -386,16 +378,16 @@ def iis_action_create(context, param, env_name,env_id=None, session_id=None ):
     assert response.status_code is 200
 
 
-@then(u'environment "{env_name}" should {condition} IIS "{iis_name}"')
-@then(u'environment "{env_name}" should {condition} IIS "{iis_name}" {optional}: "{iis_domain}"')
+@then('environment "{env_name}" should {condition} IIS "{iis_name}"')
+@then('environment "{env_name}" should {condition} IIS "{iis_name}" {optional}: "{iis_domain}"')
 def iis_check(context, env_name, condition, iis_name, optional=None, iis_domain=None):
-    if optional == u'with domain':
+    if optional == 'with domain':
         iis_id = iis_get_id(context, iis_name, env_name, iis_domain)
     else:
         iis_id = iis_get_id(context, iis_name, env_name)
-    if condition == u'contain':
+    if condition == 'contain':
         assert iis_id
-    elif condition == u'not_contain':
+    elif condition == 'not_contain':
         assert not iis_id
     else:
         LOG.error("Bad request - should be 'contain' or 'not_contain'")
@@ -406,8 +398,8 @@ def iis_get_id(context, iis_name, env_name, iis_domain=None):
     env_id = environment_get_id(context, env_name)
     iis_list = iis_get_all(context, env_name, env_id)
     for iis in iis_list:
-        if (iis[u'name'] == iis_name) and (iis_domain in [iis[u'domain'], None]):
-            return iis[u'domain']
+        if (iis['name'] == iis_name) and (iis_domain in [iis['domain'], None]):
+            return iis['domain']
 
 
 def iis_get_all(context, env_name, env_id=None, session_id=None):
@@ -416,53 +408,47 @@ def iis_get_all(context, env_name, env_id=None, session_id=None):
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
 
-    context.headers[u'X-Configuration-Session'] = session_id
+    context.headers['X-Configuration-Session'] = session_id
     url = '%s/environments/%s/webServers' % (context.url, env_id)
     response = requests.request('GET', url=url, headers=context.headers)
     assert response.status_code is 200
-    return response.json()[u'webServers']
+    return response.json()['webServers']
 
 
-@then(u'I try to {action} session for environment "{env_name}" without authentication')
+@then('I try to {action} session for environment "{env_name}" without authentication')
 def try_session(context, action, env_name, env_id=None, session_id=None):
     env_id = environment_get_id(context, env_name)
 
-    if action == u'open':
+    if action == 'open':
         url = '%s/environments/%s/configure' % (context.url, env_id)
-    if action == u'deploy':
+    if action == 'deploy':
         session_id = session_get_open(context, env_name, env_id)
-        url = '%s/environments/%s/sessions/%s/deploy' % (context.url, env_id, session_id)
+        url = '%s/environments/%s/sessions/%s/deploy' % \
+                        (context.url, env_id, session_id)
 
-    token = context.headers[u'X-Auth-Token']
-    context.headers[u'X-Auth-Token'] = '1234567890567378946593465789346589734'
+    token = context.headers['X-Auth-Token']
+    context.headers['X-Auth-Token'] = '12345678903465789346589734'
     response = requests.request('POST', url=url, headers=context.headers)
-    context.headers[u'X-Auth-Token'] = token
+    context.headers['X-Auth-Token'] = token
     assert response.status_code == 401
 
 
-@then(u'I try to create AD for environment "{env_name}" without param "{param}"')
+@then('I try to create AD for environment "{env_name}" without param "{param}"')
 def ad_try_create(context, env_name, param, env_id=None, session_id=None):
     if not env_id:
         env_id = environment_get_id(context, env_name)
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
 
-    context.headers[u'X-Configuration-Session'] = session_id
+    context.headers['X-Configuration-Session'] = session_id
     url = '%s/environments/%s/activeDirectories' % (context.url, env_id)
     body = context.ad.get()
-    if param == u'configuration':
-        del body['configuration']
-    if param == u'adminPassword':
-        del body['adminPassword']
-    if param == u'domain':
-        del body['domain']
-    if param == u'units':
-        del body['units']
-    if param == u'name':
-        del body['name']
-    if param == u'recoveryPassword':
+
+    if param == 'recoveryPassword':
         del body['units'][0]
         del body['units'][0]['recoveryPassword']
+    else:
+        del body[param]
 
     body = json.dumps(body)
     response = requests.request('POST', url=url,
@@ -471,131 +457,115 @@ def ad_try_create(context, env_name, param, env_id=None, session_id=None):
     assert response.status_code == 403
     
     
-@then(u'I try to create environment "{param}" without authentication')
+@then('I try to create environment "{param}" without authentication')
 def try_create_env(context, param, env_id=None, session_id=None):
-    context.headers[u'X-Configuration-Session'] = session_id
+    context.headers['X-Configuration-Session'] = session_id
     body = json.dumps({"name": param})
     url = "%s/environments" % context.url
-    token = context.headers[u'X-Auth-Token']
-    context.headers[u'X-Auth-Token'] = '1234567890567378946593465789346589734'
+    token = context.headers['X-Auth-Token']
+    context.headers['X-Auth-Token'] = '1234465789346589734'
     response = requests.request('POST', url=url,
-                            headers=context.headers,
-                            data=body)
-    context.headers[u'X-Auth-Token'] = token
+                                headers=context.headers,
+                                data=body)
+    context.headers['X-Auth-Token'] = token
     assert response.status_code == 401
 
 
-@then(u'I try to create {param} for environment "{env_name}" without authentication')
+@then('I try to create {param} for environment "{env_name}" without authentication')
 def try_create(context, param, env_name, env_id=None, session_id=None):
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
-    context.headers[u'X-Configuration-Session'] = session_id
+    context.headers['X-Configuration-Session'] = session_id
 
-    token = context.headers[u'X-Auth-Token']
-    if param == u'AD':
-        if not env_id:
-            env_id = environment_get_id(context, env_name)
-        if not session_id:
-            session_id = session_get_open(context, env_name, env_id)
-        context.headers[u'X-Auth-Token'] = '1234567890567378946593465789346589734'
+    token = context.headers['X-Auth-Token']
+    if param == 'AD':
+        context.headers['X-Auth-Token'] = '12345678905673784'
         url = '%s/environments/%s/activeDirectories' % (context.url, env_id)
         body = context.ad.json()
         response = requests.request('POST', url=url,
-                                headers=context.headers,
-                                data=body)
-    if param == u'session':
-        context.headers[u'X-Auth-Token'] = '1234567890567378946593465789346589734'
+                                    headers=context.headers,
+                                    data=body)
+    if param == 'session':
+        context.headers['X-Auth-Token'] = '123453465789346589734'
         url = "%s/environments" % context.url
         response = requests.request('POST', url=url,
-                                headers=context.headers)
-    if param == u'IIS':
-        if not env_id:
-            env_id = environment_get_id(context, env_name)
-        if not session_id:
-            session_id = session_get_open(context, env_name, env_id)
-        context.headers[u'X-Auth-Token'] = '1234567890567378946593465789346589734'
+                                    headers=context.headers)
+    if param == 'IIS':
+        context.headers['X-Auth-Token'] = '123456789346589734'
         url = '%s/environments/%s/webServers' % (context.url, env_id)
         body = context.iis.json()
         response = requests.request('POST', url=url,
-                                headers=context.headers,
-                                data=body)
-    context.headers[u'X-Auth-Token'] = token
+                                    headers=context.headers,
+                                    data=body)
+    context.headers['X-Auth-Token'] = token
     assert response.status_code == 401
 
         
-@then(u'I try to create IIS for environment "{env_name}" without param "{param}"')
+@then('I try to create IIS for environment "{env_name}" without param "{param}"')
 def iis_try_create(context, env_name, param, env_id=None, session_id=None):
     if not env_id:
         env_id = environment_get_id(context, env_name)
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
 
-    context.headers[u'X-Configuration-Session'] = session_id
+    context.headers['X-Configuration-Session'] = session_id
     url = '%s/environments/%s/webServers' % (context.url, env_id)
     body = context.iis.get()
-    if param == u'credentials':
-        del body['credentials']
-    if param == u'username':
-        del body['credentials']['username'] 
-    if param == u'password':
-        del body['credentials']['password'] 
-    if param == u'domain':
-        del body['domain']
-    if param == u'units':
-        del body['units']
-    if param == u'name':
-        del body['name']
+    if param in ['username', 'password']:
+        del body['credentials'][param]
+    else:
+        del body[param]
     response = requests.request('POST', url=url,
                                 headers=context.headers,
                                 data=body)
-    if param == u'domain':
+    if param == 'domain':
         assert response.status_code is 200
     else:
         assert response.status_code is 403
 
 
-@then(u'I try to create {param} for environment "{env_name}" without session ID')
+@then('I try to create {param} for environment "{env_name}" without session ID')
 def try_create_wo_session(context, param, env_name, env_id=None, session_id=None):
     if not env_id:
         env_id = environment_get_id(context, env_name)
 
-    if param == u'AD':
+    if param == 'AD':
         url = '%s/environments/%s/activeDirectories' % (context.url, env_id)
         body = context.ad.json()
-    if param == u'IIS':
+    if param == 'IIS':
         url = '%s/environments/%s/webServers' % (context.url, env_id)
         body = context.iis.json()
 
-    context.headers[u'X-Configuration-Session'] = '0.12345789'
+    context.headers['X-Configuration-Session'] = '0.12345789'
     response = requests.request('POST', url=url,
                                 headers=context.headers,
                                 data=body)
     assert response.status_code == 403
 
 
-@then(u'I try to delete environment "{env_name}" without authentication')
+@then('I try to delete environment "{env_name}" without authentication')
 def try_delete_env(context, env_name, env_id=None, session_id=None):
     if not env_id:
         env_id = environment_get_id(context, env_name)
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
-    context.headers[u'X-Configuration-Session'] = session_id
-    token = context.headers[u'X-Auth-Token']
-    context.headers[u'X-Auth-Token'] = '1234567890567378946593465789346589734'
+    context.headers['X-Configuration-Session'] = session_id
+    token = context.headers['X-Auth-Token']
+    context.headers['X-Auth-Token'] = '1234567890567378946593465789346589734'
     body = json.dumps({"id": env_id})
     url = "%s/environments/%s" % (context.url, env_id)
     response = requests.request('DELETE', url=url,
                                 headers=context.headers)
-    context.headers[u'X-Auth-Token'] = token
+    context.headers['X-Auth-Token'] = token
     assert response.status_code == 401
 
 
-@then(u'I try to get list of environments without authentication')
+@then('I try to get list of environments without authentication')
 def try_list_env(context):
-    token = context.headers[u'X-Auth-Token']
-    context.headers[u'X-Auth-Token'] = '1234567890567378946593465789346589734'
+    token = context.headers['X-Auth-Token']
+    context.headers['X-Auth-Token'] = '1234567890567378946593465789346589734'
     url = "%s/environments" % (context.url)
     response = requests.request('GET', url=url,
                                 headers=context.headers)
-    context.headers[u'X-Auth-Token'] = token
+    context.headers['X-Auth-Token'] = token
     assert response.status_code == 401
