@@ -1,11 +1,9 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
 import logging
-import jeson
+import json
 import random
 import ConfigParser
 from behave import *
+from keystoneclient.v2_0 import client as ksclient
 
 
 project = 'murano'

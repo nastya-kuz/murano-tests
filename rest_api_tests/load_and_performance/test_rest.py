@@ -3,8 +3,10 @@ import json
 import random
 import logging
 import ConfigParser
-from funkload.FunkLoadTestCase import FunkLoadTestCase
 from funkload.utils import Data
+from funkload.FunkLoadTestCase import FunkLoadTestCase
+from keystoneclient.v2_0 import client as ksclient
+
 
 logging.basicConfig()
 LOG = logging.getLogger(' REST service tests')
