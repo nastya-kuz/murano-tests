@@ -7,69 +7,69 @@ logging.basicConfig()
 LOG = logging.getLogger(__name__)
 
 
-def environment_get_id(context, env_name):
-    for e in environment_get_all(context): 
-        if e['name'] == env_name:
-            return e['id']
+result = None
+conf = init_config()
+service_url = conf.get('murano', 'url')
+user = conf.get('keystone', 'user')
+password = conf.get('keystone', 'password')
+keystone_url = conf.get('keystone', 'url')
+keystone_client = ksclient.Client(username=user, password=password,
+                                  tenant_name=user, auth_url=keystone_url)
+token = keystone_client.auth_token
+headers = {'X-Auth-Token': token, 'Content-type': 'application/json'}
 
 
-def environment_get_all(context):
+def environment_get_id(env_name):
+    environments = get_list_of_environments()
+    for environment in environments: 
+        if environment['name'] == env_name:
+            return environment['id']
+
+
+def get_list_of_environments():
     response = requests.request('GET',
-                                url=context.url + '/environments',
-                                headers=context.headers)
-    assert response.status_code is 200
+                                url=service_url + '/environments',
+                                headers=headers)
     result = response.json()
     return result['environments']
 
 
-def environment_delete(context,env_id):
-    body = json.dumps({"id": env_id})
-    url = "%s/environments/%s" % (context.url, env_id)
-    response = requests.request('DELETE', url=url,
-                                headers=context.headers)
-    assert response.status_code is 200
-
-
 @when('I create environment "{env_name}"')
-def environment_action_create(context, env_name):
+def environment_create(context, env_name):
     body = json.dumps({"name": env_name})
-    url = "%s/environments" % context.url
-    response = requests.request('POST', url=url,
-                                headers=context.headers,
-                                data=body)
-    assert response.status_code is 200
+    url = "%s/environments" % service_url
+    result = requests.request('POST', url=url, headers=headers, data=body)
+    # result.response_code
 
 
 @when('I delete environment "{env_name}"')
-def environment_action_delete(context, env_name):
+def environment_delete(context, env_name):
+    env_id = environment_get_id(env_name)
+    body = json.dumps({"id": env_id})
+    url = "%s/environments/%s" % (service_url, env_id)
+    result = requests.request('DELETE', url=url, headers=headers)
+
+
+@when('I update environment "{env_name}" to "{new_name}"')
+def environment_action_update(context, env_name, new_name):
     env_id = environment_get_id(context, env_name)
-    if env_id:
-        environment_delete(context, env_id)
-    else:
-        LOG.debug('Cannot delete environment '+env_name+' - nothing to delete')
-
-
-@when('I delete all environments')
-def environment_delete_all(context):
-    for env in environment_get_all(context):
-        response = environment_delete(context, env['id']) 
-
-
-@when('I update environment "{env_name}" to "{env_new_name}"')
-def environment_action_update(context, env_name, env_new_name):
-    env_id = environment_get_id(context, env_name)
-    body = json.dumps({'name': env_new_name})
-    url = '%s/environments/%s' % (context.url, env_id)
-    response = requests.request('PUT', url=url,
-                                headers=context.headers,
-                                data=body)
-    assert response.status_code is 200
+    body = json.dumps({'name': new_name})
+    url = '%s/environments/%s' % (service_url, env_id)
+    result = requests.request('PUT', url=url, headers=headers, data=body)
 
 
 @when('I deploy environment "{env_name}"')
-@then('I deploy environment "{env_name}"')
 def environment_action_deploy(context, env_name):
-    session_deploy(context, env_name)
+    env_id = environment_get_id(env_name)
+
+    url = '%s/environments/%s/configure' % (service_url, env_id)
+    response = requests.request('POST', url=url, headers=headers)
+    session = response.json()
+
+    url = str('%s/environments/%s/sessions/%s/deploy' %
+              (service_url, env_id, session['id']))
+
+    result = requests.request('POST', url=url, headers=headers)
 
 
 @then('environments should {condition} "{param}" {feature}')
@@ -98,36 +98,30 @@ def session_action(context, action, env_name):
             pass
 
 
-def session_open(context, env_name, env_id=None):
-    if  env_id is None:
-        env_id = environment_get_id(context, env_name)
+def session_open(env_name):
+    env_id = environment_get_id(env_name)
 
-    url = '%s/environments/%s/configure' % (context.url, env_id)
-    response = requests.request('POST', url=url, headers=context.headers)
-
+    url = '%s/environments/%s/configure' % (service_url, env_id)
+    response = requests.request('POST', url=url, headers=headers)
     result = response.json()
-    context.session_id = result['id']
-
-    assert response.status_code is 200
+    return result['id']
 
 
-def session_deploy(context, env_name, env_id=None):
-    if not env_id:
-        env_id = environment_get_id(context, env_name)
+def session_deploy(env_name):
+    env_id = environment_get_id(env_name)
 
-    session_id = session_get_open(context, env_name, env_id)
+    session_id = session_get_open(env_name, env_id)
     url = '%s/environments/%s/sessions/%s/deploy' % \
-                    (context.url, env_id, session_id)
+                    (service_url, env_id, session_id)
 
-    response = requests.request('POST', url=url, headers=context.headers)
-    assert response.status_code is 200
+    result = requests.request('POST', url=url, headers=headers)
 
 
 def session_delete(context, env_name, env_id=None, session_id=None):
     if  env_id is None:
         env_id = environment_get_id(context, env_name)
-    url = '%s/environments/%s/sessions/%s' % (context.url, env_id, session_id)
-    response = requests.request('DELETE', url=url, headers=context.headers)
+    url = '%s/environments/%s/sessions/%s' % (service_url, env_id, session_id)
+    response = requests.request('DELETE', url=url, headers=headers)
     assert response.status_code is 200
 
 
@@ -151,8 +145,8 @@ def session_get_all(context, env_name, env_id=None):
     if  env_id is None:
         env_id = environment_get_id(context, env_name)
 
-    url = '%s/environments/%s/sessions' % (context.url, env_id)
-    response = requests.request('GET', url=url, headers=context.headers)
+    url = '%s/environments/%s/sessions' % (service_url, env_id)
+    response = requests.request('GET', url=url, headers=headers)
     assert response.status_code is 200
     result = response.json()
     return result['sessions']
@@ -237,14 +231,14 @@ def ad_delete(context, ad_name, env_name, env_id=None, session_id=None):
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
 
-    context.headers['X-Configuration-Session'] = session_id
+    headers['X-Configuration-Session'] = session_id
 
     ad_id = ad_get_id(context, ad_name, env_name, env_id)
 
     url = ('%s/environments/%s/activeDirectories/%s'
-           % (context.url, env_id, ad_id))
+           % (service_url, env_id, ad_id))
 
-    response = requests.request('DELETE', url=url, headers=context.headers)
+    response = requests.request('DELETE', url=url, headers=headers)
     assert response.status_code is 200
 
 
@@ -266,13 +260,13 @@ def ad_create(context, env_name, env_id=None, session_id=None):
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
 
-    context.headers['X-Configuration-Session'] = session_id
+    headers['X-Configuration-Session'] = session_id
 
-    url = '%s/environments/%s/activeDirectories' % (context.url, env_id)
+    url = '%s/environments/%s/activeDirectories' % (service_url, env_id)
     body = context.ad.json()
 
     response = requests.request('POST', url=url,
-                                headers=context.headers,
+                                headers=headers,
                                 data=body)
     assert response.status_code is 200
 
@@ -283,13 +277,13 @@ def ad_update(context, ad_name, env_name, env_id=None, session_id=None):
         env_id = environment_get_id(context, env_name)
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
-    context.headers['X-Configuration-Session'] = session_id
+    headers['X-Configuration-Session'] = session_id
     ad_id = ad_get_id(context, ad_name, env_name, env_id)
     url = '%s/environments/%s/activeDirectories/%s' \
-                       % (context.url, env_id, ad_id)
+                       % (service_url, env_id, ad_id)
     body = context.ad.json()
     response = requests.request('POST', url=url,
-                                headers=context.headers,
+                                headers=headers,
                                 data=body)
     assert response.status_code is 200
 
@@ -299,9 +293,9 @@ def ad_get_all(context, env_name, env_id=None, session_id=None):
         env_id = environment_get_id(context, env_name)
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
-    context.headers['X-Configuration-Session'] = session_id
-    url = '%s/environments/%s/activeDirectories' % (context.url, env_id)
-    response = requests.request('GET', url=url, headers=context.headers)
+    headers['X-Configuration-Session'] = session_id
+    url = '%s/environments/%s/activeDirectories' % (service_url, env_id)
+    response = requests.request('GET', url=url, headers=headers)
     assert response.status_code is 200
     result = response.json()
     return result['activeDirectories']
@@ -345,9 +339,9 @@ def iis_get_all(context, env_name, env_id=None, session_id=None):
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
 
-    context.headers['X-Configuration-Session'] = session_id
-    url = '%s/environments/%s/webServers' % (context.url, env_id)
-    response = requests.request('GET', url=url, headers=context.headers)
+    headers['X-Configuration-Session'] = session_id
+    url = '%s/environments/%s/webServers' % (service_url, env_id)
+    response = requests.request('GET', url=url, headers=headers)
     assert response.status_code == 200
     resault = response.json()
     return resault['webServers']
@@ -369,11 +363,11 @@ def iis_action_create(context, param, env_name,env_id=None, session_id=None ):
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
 
-    context.headers['X-Configuration-Session'] = session_id
-    url = '%s/environments/%s/webServers' % (context.url, env_id)
+    headers['X-Configuration-Session'] = session_id
+    url = '%s/environments/%s/webServers' % (service_url, env_id)
     body = context.iis.json()
     response = requests.request('POST', url=url,
-                                headers=context.headers,
+                                headers=headers,
                                 data=body)
     assert response.status_code is 200
 
@@ -408,9 +402,9 @@ def iis_get_all(context, env_name, env_id=None, session_id=None):
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
 
-    context.headers['X-Configuration-Session'] = session_id
-    url = '%s/environments/%s/webServers' % (context.url, env_id)
-    response = requests.request('GET', url=url, headers=context.headers)
+    headers['X-Configuration-Session'] = session_id
+    url = '%s/environments/%s/webServers' % (service_url, env_id)
+    response = requests.request('GET', url=url, headers=headers)
     assert response.status_code is 200
     return response.json()['webServers']
 
@@ -420,16 +414,16 @@ def try_session(context, action, env_name, env_id=None, session_id=None):
     env_id = environment_get_id(context, env_name)
 
     if action == 'open':
-        url = '%s/environments/%s/configure' % (context.url, env_id)
+        url = '%s/environments/%s/configure' % (service_url, env_id)
     if action == 'deploy':
         session_id = session_get_open(context, env_name, env_id)
         url = '%s/environments/%s/sessions/%s/deploy' % \
-                        (context.url, env_id, session_id)
+                        (service_url, env_id, session_id)
 
-    token = context.headers['X-Auth-Token']
-    context.headers['X-Auth-Token'] = '12345678903465789346589734'
-    response = requests.request('POST', url=url, headers=context.headers)
-    context.headers['X-Auth-Token'] = token
+    token = headers['X-Auth-Token']
+    headers['X-Auth-Token'] = '12345678903465789346589734'
+    response = requests.request('POST', url=url, headers=headers)
+    headers['X-Auth-Token'] = token
     assert response.status_code == 401
 
 
@@ -440,8 +434,8 @@ def ad_try_create(context, env_name, param, env_id=None, session_id=None):
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
 
-    context.headers['X-Configuration-Session'] = session_id
-    url = '%s/environments/%s/activeDirectories' % (context.url, env_id)
+    headers['X-Configuration-Session'] = session_id
+    url = '%s/environments/%s/activeDirectories' % (service_url, env_id)
     body = context.ad.get()
 
     if param == 'recoveryPassword':
@@ -452,22 +446,22 @@ def ad_try_create(context, env_name, param, env_id=None, session_id=None):
 
     body = json.dumps(body)
     response = requests.request('POST', url=url,
-                                headers=context.headers,
+                                headers=headers,
                                 data=body)
     assert response.status_code == 403
     
     
 @then('I try to create environment "{param}" without authentication')
 def try_create_env(context, param, env_id=None, session_id=None):
-    context.headers['X-Configuration-Session'] = session_id
+    headers['X-Configuration-Session'] = session_id
     body = json.dumps({"name": param})
-    url = "%s/environments" % context.url
-    token = context.headers['X-Auth-Token']
-    context.headers['X-Auth-Token'] = '1234465789346589734'
+    url = "%s/environments" % service_url
+    token = headers['X-Auth-Token']
+    headers['X-Auth-Token'] = '1234465789346589734'
     response = requests.request('POST', url=url,
-                                headers=context.headers,
+                                headers=headers,
                                 data=body)
-    context.headers['X-Auth-Token'] = token
+    headers['X-Auth-Token'] = token
     assert response.status_code == 401
 
 
@@ -475,29 +469,29 @@ def try_create_env(context, param, env_id=None, session_id=None):
 def try_create(context, param, env_name, env_id=None, session_id=None):
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
-    context.headers['X-Configuration-Session'] = session_id
+    headers['X-Configuration-Session'] = session_id
 
-    token = context.headers['X-Auth-Token']
+    token = headers['X-Auth-Token']
     if param == 'AD':
-        context.headers['X-Auth-Token'] = '12345678905673784'
-        url = '%s/environments/%s/activeDirectories' % (context.url, env_id)
+        headers['X-Auth-Token'] = '12345678905673784'
+        url = '%s/environments/%s/activeDirectories' % (service_url, env_id)
         body = context.ad.json()
         response = requests.request('POST', url=url,
-                                    headers=context.headers,
+                                    headers=headers,
                                     data=body)
     if param == 'session':
-        context.headers['X-Auth-Token'] = '123453465789346589734'
-        url = "%s/environments" % context.url
+        headers['X-Auth-Token'] = '123453465789346589734'
+        url = "%s/environments" % service_url
         response = requests.request('POST', url=url,
-                                    headers=context.headers)
+                                    headers=headers)
     if param == 'IIS':
-        context.headers['X-Auth-Token'] = '123456789346589734'
-        url = '%s/environments/%s/webServers' % (context.url, env_id)
+        headers['X-Auth-Token'] = '123456789346589734'
+        url = '%s/environments/%s/webServers' % (service_url, env_id)
         body = context.iis.json()
         response = requests.request('POST', url=url,
-                                    headers=context.headers,
+                                    headers=headers,
                                     data=body)
-    context.headers['X-Auth-Token'] = token
+    headers['X-Auth-Token'] = token
     assert response.status_code == 401
 
         
@@ -508,15 +502,15 @@ def iis_try_create(context, env_name, param, env_id=None, session_id=None):
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
 
-    context.headers['X-Configuration-Session'] = session_id
-    url = '%s/environments/%s/webServers' % (context.url, env_id)
+    headers['X-Configuration-Session'] = session_id
+    url = '%s/environments/%s/webServers' % (service_url, env_id)
     body = context.iis.get()
     if param in ['username', 'password']:
         del body['credentials'][param]
     else:
         del body[param]
     response = requests.request('POST', url=url,
-                                headers=context.headers,
+                                headers=headers,
                                 data=body)
     if param == 'domain':
         assert response.status_code is 200
@@ -530,15 +524,15 @@ def try_create_wo_session(context, param, env_name, env_id=None, session_id=None
         env_id = environment_get_id(context, env_name)
 
     if param == 'AD':
-        url = '%s/environments/%s/activeDirectories' % (context.url, env_id)
+        url = '%s/environments/%s/activeDirectories' % (service_url, env_id)
         body = context.ad.json()
     if param == 'IIS':
-        url = '%s/environments/%s/webServers' % (context.url, env_id)
+        url = '%s/environments/%s/webServers' % (service_url, env_id)
         body = context.iis.json()
 
-    context.headers['X-Configuration-Session'] = '0.12345789'
+    headers['X-Configuration-Session'] = '0.12345789'
     response = requests.request('POST', url=url,
-                                headers=context.headers,
+                                headers=headers,
                                 data=body)
     assert response.status_code == 403
 
@@ -549,23 +543,31 @@ def try_delete_env(context, env_name, env_id=None, session_id=None):
         env_id = environment_get_id(context, env_name)
     if not session_id:
         session_id = session_get_open(context, env_name, env_id)
-    context.headers['X-Configuration-Session'] = session_id
-    token = context.headers['X-Auth-Token']
-    context.headers['X-Auth-Token'] = '1234567890567378946593465789346589734'
+    headers['X-Configuration-Session'] = session_id
+    token = headers['X-Auth-Token']
+    headers['X-Auth-Token'] = '1234567890567378946593465789346589734'
     body = json.dumps({"id": env_id})
-    url = "%s/environments/%s" % (context.url, env_id)
+    url = "%s/environments/%s" % (service_url, env_id)
     response = requests.request('DELETE', url=url,
-                                headers=context.headers)
-    context.headers['X-Auth-Token'] = token
+                                headers=headers)
+    headers['X-Auth-Token'] = token
     assert response.status_code == 401
 
 
 @then('I try to get list of environments without authentication')
 def try_list_env(context):
-    token = context.headers['X-Auth-Token']
-    context.headers['X-Auth-Token'] = '1234567890567378946593465789346589734'
-    url = "%s/environments" % (context.url)
+    token = headers['X-Auth-Token']
+    headers['X-Auth-Token'] = '1234567890567378946593465789346589734'
+    url = "%s/environments" % (service_url)
     response = requests.request('GET', url=url,
-                                headers=context.headers)
-    context.headers['X-Auth-Token'] = token
+                                headers=headers)
+    headers['X-Auth-Token'] = token
     assert response.status_code == 401
+
+
+def delete_all_environments():
+    environments = get_list_of_environments()
+    for environment in environments:
+        response = environment_delete(None, environment['name'])
+
+delete_all_environments()

@@ -22,8 +22,6 @@ class ServicesPage(page.Page):
     name = 'Services'
 
     def create_service(self, service_type, parameters):
-        self.Refresh()
-
         self.Button('CreateService').Click()
         self.DropDownList('0-service').Set(service_type)
         self.Button('wizard_goto_step').Click()
@@ -36,8 +34,6 @@ class ServicesPage(page.Page):
         self.Button('Create').Click()
 
     def delete_service(self, name):
-        self.Refresh()
-
         link = self.Link(name).Address()
 
         service_id = re.search('tabula/(\S+)', link).group(0)[7:-1]
@@ -48,8 +44,6 @@ class ServicesPage(page.Page):
         self.Button('Delete Service').Click()
 
     def get_service_status(self, name):
-        self.Refresh()
-
         link = self.Link(name).Address()
         service_id = re.search('tabula/(\S+)', link).group(0)[7:-8]
 

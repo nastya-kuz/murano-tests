@@ -22,14 +22,11 @@ class EnvironmentsPage(page.Page):
     name = 'Environments'
 
     def create_environment(self, name):
-        self.Refresh()
         self.Button('Create Environment').Click()
         self.EditBox('id_name').Set(name)
         self.Button('Create').Click()
 
     def delete_environment(self, name):
-        self.Refresh()
-
         link = self.Link(name).Address()
         environment_id = re.search('tabula/(\S+)', link).group(0)[7:-1]
 
@@ -39,8 +36,6 @@ class EnvironmentsPage(page.Page):
         self.Button('Delete Environment').Click()
 
     def deploy_environment(self, name):
-        self.Refresh()
-
         link = self.Link(name).Address()
         environment_id = re.search('tabula/(\S+)', link).group(0)[7:-1]
 
@@ -48,8 +43,6 @@ class EnvironmentsPage(page.Page):
         self.Button('Deploy', environment_id).Click()
 
     def get_environment_status(self, name):
-        self.Refresh()
-
         link = self.Link(name).Address()
         environment_id = re.search('tabula/(\S+)', link).group(0)[7:-1]
 
