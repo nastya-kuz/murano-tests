@@ -1,0 +1,521 @@
+*** Settings ***
+Library           simple_REST.py
+Library           Collections
+Resource          rest.txt
+
+*** Test Cases ***
+Begin of testing
+    [Tags]    thread1
+    Get X-Auth-Token    ${ip_keystone}
+    Get Headers
+
+Create environment ================
+    [Tags]    thread1
+    Create Environment    ${template}_rest-api_env
+    ${env_id}    Get Environment ID    ${template}_rest-api_env
+    Should Not Be Equal    ${env_id}    None
+
+Edit environment
+    [Tags]    thread1
+    ${result}    Get List Of Environments
+    ${list}    Format List    ${result['environments']}
+    Log List    ${list}
+    Update Environment    ${template}_rest-api_env    ${template}_env_2_modify
+    ${result}    Get List Of Environments
+    ${list}    Format List    ${result['environments']}
+    Log List    ${list}
+    ${env_id}    Get Environment ID    ${template}_env_2_modify
+    Should Not Be Equal    ${env_id}    None
+
+Delete environment
+    Delete Environment    ${template}_env_2_modify
+    ${env_id}    Get Environment ID    ${template}_env_2_modify
+    Should Be Equal    ${env_id}    None
+    ${result}    Get List Of Environments
+    ${list}    Format List    ${result['environments']}
+    Log List    ${list}
+
+Create session to environment ===========
+    [Tags]    thread1
+    Create Environment    ${template}_rest-api_env1
+    ${result}    Create session    ${template}_rest-api_env1
+    Should Not Be Empty    ${result['id']}
+    Set Global Variable    ${session_id}    ${result['id']}
+    Log    ${session_id}
+
+Get session information_1
+    [Tags]    thread1
+    ${result}    Get session information    ${template}_rest-api_env1    ${session_id}
+    Log    ${result}
+
+Delete session
+    [Tags]    thread1
+    Delete session    ${template}_rest-api_env1    ${session_id}
+    ${result}    Get session information    ${template}_rest-api_env1    ${session_id}    404
+    Delete session    ${template}_rest-api_env1    ${session_id}    404
+    # !!!!!!!!!!!!!!!!!!!!!! Response code must be 404, not 500!!!!!!
+    Delete Environment    ${template}_rest-api_env1
+
+Create AD service ===============
+    [Tags]    thread1
+    Create Environment    ${template}_rest-api_ad
+    Create session    ${template}_rest-api_ad
+    Create service    ${template}_rest-api_ad    AD    ad001
+
+List AD services
+    [Tags]    thread1
+    ${result}    Get List of    AD    ${template}_rest-api_ad
+    Log List    ${result}
+    ${len}    Get Length    ${result}
+    Should Be Equal as Integers    1    ${len}
+
+Delete AD service
+    [Tags]    thread1
+    Delete service    ${template}_rest-api_ad    ad001
+    ${result}    Get List of    AD    ${template}_rest-api_ad
+    ${len}    Get Length    ${result}
+    Should Be Equal as Integers    ${len}    0
+    Delete Environment    ${template}_rest-api_ad
+
+Create IIS service =============
+    [Tags]    thread1
+    Create Environment    ${template}_rest-api_iis
+    Create session    ${template}_rest-api_iis
+    Create service    ${template}_rest-api_iis    IIS    iis001
+
+List IIS services
+    [Tags]    thread1
+    ${result}    Get List of    IIS    ${template}_rest-api_iis
+    ${len}    Get Length    ${result}
+    Should Be Equal as Integers    1    ${len}
+
+Delete IIS service
+    [Tags]    thread1
+    Delete service    ${template}_rest-api_iis    iis001
+    ${result}    Get List of    IIS    ${template}_rest-api_iis
+    ${len}    Get Length    ${result}
+    Should Be Equal as Integers    ${len}    0
+    Delete Environment    ${template}_rest-api_iis
+
+Create ASP NET service ===============
+    [Tags]    thread1
+    Create Environment    ${template}_rest-api_asp
+    Create session    ${template}_rest-api_asp
+    Create service    ${template}_rest-api_asp    ASP    asp001
+
+List ASP NET services
+    [Tags]    thread1
+    ${result}    Get List of    ASP    ${template}_rest-api_asp
+    ${len}    Get Length    ${result}
+    Should Be Equal as Integers    1    ${len}
+
+Delete ASP NET service
+    [Tags]    thread1
+    Delete service    ${template}_rest-api_asp    asp001
+    ${result}    Get List of    ASP    ${template}_rest-api_asp
+    ${len}    Get Length    ${result}
+    Should Be Equal as Integers    ${len}    0
+    Delete Environment    ${template}_rest-api_asp
+
+Create ASP NET Farm service =====================
+    [Tags]    thread1
+    Create Environment    ${template}_rest-api_aspfarm
+    Create session    ${template}_rest-api_aspfarm
+    Create service    ${template}_rest-api_aspfarm    ASP Farm    aspFarm001
+
+List ASP NET Farm services
+    [Tags]    thread1
+    ${result}    Get List of    ASP Farm    ${template}_rest-api_aspfarm
+    ${len}    Get Length    ${result}
+    Should Be Equal as Integers    1    ${len}
+
+Delete ASP NET Farm service
+    [Tags]    thread1
+    Delete service    ${template}_rest-api_aspfarm    aspFarm001
+    ${result}    Get List of    ASP Farm    ${template}_rest-api_aspfarm
+    ${len}    Get Length    ${result}
+    Should Be Equal as Integers    ${len}    0
+    Delete Environment    ${template}_rest-api_aspfarm
+
+Create IIS Farm service ================
+    [Tags]    thread1
+    Create Environment    ${template}_rest-api_iisfarm
+    Create session    ${template}_rest-api_iisfarm
+    Create service    ${template}_rest-api_iisfarm    IIS Farm    iisFarm001
+
+List IIS Farm services
+    [Tags]    thread1
+    ${result}    Get List of    IIS Farm    ${template}_rest-api_iisfarm
+    ${len}    Get Length    ${result}
+    Should Be Equal as Integers    1    ${len}
+
+Delete IIS Farm service
+    [Tags]    thread1
+    Delete service    ${template}_rest-api_iisfarm    iisFarm001
+    ${result}    Get List of    IIS Farm    ${template}_rest-api_iisfarm
+    ${len}    Get Length    ${result}
+    Should Be Equal as Integers    ${len}    0
+    Delete Environment    ${template}_rest-api_iisfarm
+
+Create some services ================
+    [Tags]    thread1
+    Get X-Auth-Token    ${ip_keystone}
+    Create Environment    ${template}_rest-api_thread2
+    Create session    ${template}_rest-api_thread2
+    Create service    ${template}_rest-api_thread2    AD    ad001
+    Create service    ${template}_rest-api_thread2    AD    ad002
+    Create service    ${template}_rest-api_thread2    AD    ad005
+    Create service    ${template}_rest-api_thread2    ASP    asp005
+    Create service    ${template}_rest-api_thread2    ASP    asp005
+    Create service    ${template}_rest-api_thread2    IIS Farm    iisFarm002
+    Create service    ${template}_rest-api_thread2    ASP    asp006
+    Create service    ${template}_rest-api_thread2    ASP Farm    aspFarm005
+    Create service    ${template}_rest-api_thread2    ASP Farm    aspfarm005
+    Create service    ${template}_rest-api_thread2    IIS    iis003
+    Create service    ${template}_rest-api_thread2    IIS Farm    iisFarm003
+    Create service    ${template}_rest-api_thread2    IIS    iis001
+    Create service    ${template}_rest-api_thread2    IIS    iis_001
+    Create service    ${template}_rest-api_thread2    IIS    iis001
+    Create service    ${template}_rest-api_thread2    IIS    iis002
+    Create service    ${template}_rest-api_thread2    AD    ad001
+    Create service    ${template}_rest-api_thread2    IIS Farm    iisFarm002
+    Create service    ${template}_rest-api_thread2    IIS Farm    iisFarm004
+    Create service    ${template}_rest-api_thread2    IIS Farm    iisFarm005
+    Create service    ${template}_rest-api_thread2    IIS Farm    iisFarm006
+    # View all services
+    ${list}    Get List of    All Services    ${template}_rest-api_thread2
+    ${len}    Get Length    ${list}
+    Should Be Equal as Integers    20    ${len}
+    ${list}    Format List    ${list}
+    Log List    ${list}
+    # Check number of ADs
+    ${result}    Get List of    AD    ${template}_rest-api_thread2
+    Log List    ${result}
+    ${len}    Get Length    ${result}
+    Should Be Equal as Integers    4    ${len}
+    # Check number of IISs
+    ${result}    Get List of    IIS    ${template}_rest-api_thread2
+    Log List    ${result}
+    ${len}    Get Length    ${result}
+    Should Be Equal as Integers    5    ${len}
+    # Check number of ASP NETs
+    ${result}    Get List of    ASP    ${template}_rest-api_thread2
+    Log List    ${result}
+    ${len}    Get Length    ${result}
+    Should Be Equal as Integers    3    ${len}
+    # Check number of IIS Farms
+    ${result}    Get List of    IIS Farm    ${template}_rest-api_thread2
+    Log List    ${result}
+    ${len}    Get Length    ${result}
+    Should Be Equal as Integers    6    ${len}
+    # Check number of ASP NET Farms
+    ${result}    Get List of    ASP Farm    ${template}_rest-api_thread2
+    Log List    ${result}
+    ${len}    Get Length    ${result}
+    Should Be Equal as Integers    2    ${len}
+
+Delete all of some services
+    [Tags]    thread1
+    Delete service    ${template}_rest-api_thread2    iisFarm003
+    Delete service    ${template}_rest-api_thread2    aspFarm005
+    Delete service    ${template}_rest-api_thread2    iis001
+    Delete service    ${template}_rest-api_thread2    iisFarm002
+    Delete service    ${template}_rest-api_thread2    iisFarm004
+    Delete service    ${template}_rest-api_thread2    iis001
+    Delete service    ${template}_rest-api_thread2    ad005
+    Delete service    ${template}_rest-api_thread2    aspfarm005
+    Delete service    ${template}_rest-api_thread2    iis003
+    Delete service    ${template}_rest-api_thread2    iis_001
+    Delete service    ${template}_rest-api_thread2    asp005
+    Delete service    ${template}_rest-api_thread2    ad002
+    Delete service    ${template}_rest-api_thread2    asp006
+    Delete service    ${template}_rest-api_thread2    iis002
+    Delete service    ${template}_rest-api_thread2    ad001
+    Delete service    ${template}_rest-api_thread2    iisFarm005
+    Delete service    ${template}_rest-api_thread2    asp005
+    Delete service    ${template}_rest-api_thread2    iisFarm002
+    Delete service    ${template}_rest-api_thread2    ad001
+    Delete service    ${template}_rest-api_thread2    iisFarm006
+    # View all services
+    ${list}    Get List of    All Services    ${template}_rest-api_thread2
+    ${len}    Get Length    ${list}
+    Should Be Equal as Integers    0    ${len}
+    Log List    ${list}
+    Delete Environment    ${template}_rest-api_thread2
+
+Test of multisession =====================
+    [Tags]    thread1
+    Get X-Auth-Token    ${ip_keystone}
+    Create Environment    ${template}_rest-api_thread3
+    ${result}    Create session    ${template}_rest-api_thread3
+    Should Not Be Empty    ${result['id']}
+    Set Global Variable    ${session_id}    ${result['id']}
+    # Store session
+    ${session1_1}    Set Variable    ${session_id}
+    # Create additional sessions
+    ${result}    Create session    ${template}_rest-api_thread3
+    ${session1_2}    Set Variable    ${result['id']}
+    ${result}    Create session    ${template}_rest-api_thread3
+    ${session1_3}    Set Variable    ${result['id']}
+    # Stage 1: Begin of create some services ===================
+    Update Headers    X-Configuration-Session    ${session1_1}
+    Create service    ${template}_rest-api_thread3    AD    ad001
+    Create service    ${template}_rest-api_thread3    AD    ad002
+    Create service    ${template}_rest-api_thread3    ASP    asp005
+    Create service    ${template}_rest-api_thread3    ASP    asp005
+    Create service    ${template}_rest-api_thread3    IIS Farm    iisFarm002
+    Create service    ${template}_rest-api_thread3    ASP    asp006
+    Create service    ${template}_rest-api_thread3    ASP Farm    aspFarm005
+    Create service    ${template}_rest-api_thread3    ASP Farm    aspfarm005
+    Create service    ${template}_rest-api_thread3    IIS    iis003
+    # View all services
+    ${list}    Get List of    All Services    ${template}_rest-api_thread3
+    Log List    ${list}
+    Update Headers    X-Configuration-Session    ${session1_2}
+    Create service    ${template}_rest-api_thread3    AD    ad001
+    Create service    ${template}_rest-api_thread3    ASP    asp005
+    Create service    ${template}_rest-api_thread3    ASP    asp005
+    Create service    ${template}_rest-api_thread3    IIS Farm    iisFarm002
+    Create service    ${template}_rest-api_thread3    ASP    asp006
+    # View all services
+    ${list}    Get List of    All Services    ${template}_rest-api_thread3
+    Log List    ${list}
+    Update Headers    X-Configuration-Session    ${session1_3}
+    Create service    ${template}_rest-api_thread3    ASP    asp005_3
+    Create service    ${template}_rest-api_thread3    ASP    asp005_3
+    Create service    ${template}_rest-api_thread3    IIS Farm    iisFarm002_3
+    Create service    ${template}_rest-api_thread3    ASP    asp006_3
+    Create service    ${template}_rest-api_thread3    ASP Farm    aspFarm005_3
+    Create service    ${template}_rest-api_thread3    ASP Farm    aspfarm005_3
+    Create service    ${template}_rest-api_thread3    IIS    iis003_3
+    Create service    ${template}_rest-api_thread3    IIS Farm    iisFarm003_3
+    Create service    ${template}_rest-api_thread3    IIS    iis001_3
+    Create service    ${template}_rest-api_thread3    IIS    iis_001_3
+    Create service    ${template}_rest-api_thread3    IIS    iis001_3
+    Create service    ${template}_rest-api_thread3    IIS    iis002_3
+    Create service    ${template}_rest-api_thread3    IIS Farm    iisFarm002_3
+    Create service    ${template}_rest-api_thread3    IIS Farm    iisFarm004_3
+    # View all services
+    ${list}    Get List of    All Services    ${template}_rest-api_thread3
+    Log List    ${list}
+    # Stage 2: End of create some services ===================
+    Update Headers    X-Configuration-Session    ${session1_1}
+    Create service    ${template}_rest-api_thread3    IIS Farm    iisFarm003
+    Create service    ${template}_rest-api_thread3    IIS    iis001
+    Create service    ${template}_rest-api_thread3    IIS    iis002
+    Create service    ${template}_rest-api_thread3    AD    ad001
+    Create service    ${template}_rest-api_thread3    IIS Farm    iisFarm002
+    Create service    ${template}_rest-api_thread3    IIS Farm    iisFarm004
+    Create service    ${template}_rest-api_thread3    IIS Farm    iisFarm005
+    Create service    ${template}_rest-api_thread3    IIS Farm    iisFarm006
+    # View all services
+    ${list}    Get List of    All Services    ${template}_rest-api_thread3
+    Log List    ${list}
+    Update Headers    X-Configuration-Session    ${session1_2}
+    Create service    ${template}_rest-api_thread3    ASP Farm    aspFarm005
+    Create service    ${template}_rest-api_thread3    ASP Farm    aspfarm005
+    Create service    ${template}_rest-api_thread3    IIS    iis003
+    Create service    ${template}_rest-api_thread3    IIS Farm    iisFarm003
+    Create service    ${template}_rest-api_thread3    IIS    iis001
+    Create service    ${template}_rest-api_thread3    IIS    iis_001
+    Create service    ${template}_rest-api_thread3    IIS    iis002
+    Create service    ${template}_rest-api_thread3    AD    ad001
+    Create service    ${template}_rest-api_thread3    IIS Farm    iisFarm002
+    Create service    ${template}_rest-api_thread3    IIS Farm    iisFarm005
+    Create service    ${template}_rest-api_thread3    IIS Farm    iisFarm006
+    # View all services
+    ${list}    Get List of    All Services    ${template}_rest-api_thread3
+    Log List    ${list}
+    Update Headers    X-Configuration-Session    ${session1_3}
+    Create service    ${template}_rest-api_thread3    AD    ad001_3
+    Create service    ${template}_rest-api_thread3    IIS Farm    iisFarm005_3
+    Create service    ${template}_rest-api_thread3    IIS Farm    iisFarm006_3
+    # === View services in all sessions ===
+    Update Headers    X-Configuration-Session    ${session1_1}
+    # View all services
+    ${list}    Get List of    All Services    ${template}_rest-api_thread3
+    Log List    ${list}
+    ${len}    Get Length    ${list}
+    Should Be Equal as Integers    17    ${len}
+    Update Headers    X-Configuration-Session    ${session1_2}
+    # View all services
+    ${list}    Get List of    All Services    ${template}_rest-api_thread3
+    Log List    ${list}
+    ${len}    Get Length    ${list}
+    Should Be Equal as Integers    16    ${len}
+    Update Headers    X-Configuration-Session    ${session1_3}
+    # View all services
+    ${list}    Get List of    All Services    ${template}_rest-api_thread3
+    Log List    ${list}
+    ${len}    Get Length    ${list}
+    Should Be Equal as Integers    17    ${len}
+    # Need control of number created services
+    # Stage 3: delete some services ===================
+    Delete service    ${template}_rest-api_thread3    iis_001_3
+    Delete service    ${template}_rest-api_thread3    iis002_3
+    Delete service    ${template}_rest-api_thread3    iisFarm006_3
+    Delete service    ${template}_rest-api_thread3    aspfarm005_3
+    Delete service    ${template}_rest-api_thread3    ad001_3
+    # View all services
+    ${list}    Get List of    All Services    ${template}_rest-api_thread3
+    Log List    ${list}
+    ${len}    Get Length    ${list}
+    Should Be Equal as Integers    12    ${len}
+    Update Headers    X-Configuration-Session    ${session1_2}
+    Delete service    ${template}_rest-api_thread3    iis_001
+    Delete service    ${template}_rest-api_thread3    iis002
+    Delete service    ${template}_rest-api_thread3    ad001
+    Delete service    ${template}_rest-api_thread3    iisFarm006
+    # View all services
+    ${list}    Get List of    All Services    ${template}_rest-api_thread3
+    Log List    ${list}
+    ${len}    Get Length    ${list}
+    Should Be Equal as Integers    12    ${len}
+    Update Headers    X-Configuration-Session    ${session1_1}
+    Delete service    ${template}_rest-api_thread3    ad001
+    Delete service    ${template}_rest-api_thread3    ad002
+    Delete service    ${template}_rest-api_thread3    asp005
+    Delete service    ${template}_rest-api_thread3    asp005
+    Delete service    ${template}_rest-api_thread3    iisFarm002
+    Delete service    ${template}_rest-api_thread3    asp006
+    Delete service    ${template}_rest-api_thread3    aspFarm005
+    Delete service    ${template}_rest-api_thread3    aspfarm005
+    Delete service    ${template}_rest-api_thread3    iis003
+    Delete service    ${template}_rest-api_thread3    iisFarm003
+    Delete service    ${template}_rest-api_thread3    iis001
+    Delete service    ${template}_rest-api_thread3    iis002
+    Delete service    ${template}_rest-api_thread3    ad001
+    Delete service    ${template}_rest-api_thread3    iisFarm002
+    Delete service    ${template}_rest-api_thread3    iisFarm004
+    Delete service    ${template}_rest-api_thread3    iisFarm005
+    Delete service    ${template}_rest-api_thread3    iisFarm006
+    # View all services
+    ${list}    Get List of    All Services    ${template}_rest-api_thread3
+    Log List    ${list}
+    ${len}    Get Length    ${list}
+    Should Be Equal as Integers    0    ${len}
+    Delete Environment    ${template}_rest-api_thread3
+
+Deploy one AD
+    [Tags]    thread5
+    Create environment    ${template}_ad_depl
+    ${result}    Create session    ${template}_ad_depl
+    Set Global Variable    ${session_id}    ${result['id']}
+    Create service    ${template}_ad_depl    AD    deploy.com
+    Deploy session    ${template}_ad_depl    ${session_id}
+    Wait Until Keyword Succeeds    30m    10s    Check Environment    ${template}_ad_depl    ready
+    Get Environment ID    ${template}_ad_depl
+    #Delete environment    ${template}_ad_depl
+
+Deploy one IIS
+    [Tags]    thread5
+    Create environment    ${template}_bigden-iis
+    ${result}    Create session    ${template}_bigden-iis
+    Set Global Variable    ${session_id}    ${result['id']}
+    Create service    ${template}_bigden-iis    IIS    IIS_2_deploy
+    Deploy session    ${template}_bigden-iis    ${session_id}
+    Wait Until Keyword Succeeds    20m    5s    Check Environment    ${template}_bigden-iis    ready
+    Get Environment ID    ${template}_bigden-iis
+    Delete environment    ${template}_bigden-iis
+
+Deploy one ASP.NET
+    [Tags]    thread5
+    Create environment    ${template}_bigden-asp
+    ${result}    Create session    ${template}_bigden-asp
+    Set Global Variable    ${session_id}    ${result['id']}
+    Create service    ${template}_bigden-asp    ASP    ASP_2_deploy
+    Deploy session    ${template}_bigden-asp    ${session_id}
+    Wait Until Keyword Succeeds    20m    5s    Check Environment    ${template}_bigden-asp    ready
+    Get Environment ID    ${template}_bigden-asp
+    Delete environment    ${template}_bigden-asp
+
+Deploy one ASP.NET Farm
+    [Tags]    thread5
+    Create environment    ${template}_bigden-asp-farm
+    ${result}    Create session    ${template}_bigden-asp-farm
+    Set Global Variable    ${session_id}    ${result['id']}
+    Create service    ${template}_bigden-asp-farm    ASP Farm    ASP-Farm_2_deploy
+    Deploy session    ${template}_bigden-asp-farm    ${session_id}
+    Wait Until Keyword Succeeds    20m    5s    Check Environment    ${template}_bigden-asp-farm    ready
+    Get Environment ID    ${template}_bigden-asp-farm
+    Delete environment    ${template}_bigden-asp-farm
+
+Deploy one IIS Farm
+    [Tags]    thread5
+    Create environment    ${template}_bigden-iis-farm
+    ${result}    Create session    ${template}_bigden-iis-farm
+    Set Global Variable    ${session_id}    ${result['id']}
+    Create service    ${template}_bigden-iis-farm    IIS Farm    IIS-Farm_2_deploy
+    Deploy session    ${template}_bigden-iis-farm    ${session_id}
+    Wait Until Keyword Succeeds    40m    5s    Check Environment    ${template}_bigden-iis-farm    ready
+    Get Environment ID    ${template}_bigden-iis-farm
+    Delete environment    ${template}_bigden-iis-farm
+
+Sequence deploy
+    [Tags]    thread5
+    Create environment    ${template}_bigden-all_service
+    ${result}    Create session    ${template}_bigden-all_service
+    Set Global Variable    ${session_id}    ${result['id']}
+    Create service    ${template}_bigden-all_service    AD    AD_2_deploy
+    Create service    ${template}_bigden-all_service    IIS    IIS_2_deploy
+    Create service    ${template}_bigden-all_service    ASP    ASP.NET_2_deploy
+    #Create service    ${template}_bigden-all_service    ASP Farm    ASP.NET_Farm_2_deploy
+    #Create service    ${template}_bigden-all_service    IIS Farm    IIS_Farm_2_deploy
+    Deploy session    ${template}_bigden-all_service    ${session_id}
+    Wait Until Keyword Succeeds    60m    10s    Check Environment    ${template}_bigden-all_service    ready
+    Get Environment ID    ${template}_bigden-all_service
+    Delete environment    ${template}_bigden-all_service
+
+Double deploy
+    [Tags]    thread5
+    Create environment    ${template}_double_dep
+    ${result}    Create session    ${template}_double_dep
+    Set Global Variable    ${session_id}    ${result['id']}
+    Create service    ${template}_double_dep    AD    deploy.com
+    Deploy session    ${template}_double_dep    ${session_id}
+    Wait Until Keyword Succeeds    20m    10s    Check Environment    ${template}_double_dep    ready
+    ${result}    Get deployments    ${template}_double_dep
+    ${result}    Get deployment info    ${template}_double_dep    ${result['deployments'][0]['id']}
+    Format deploy report    ${result}
+    ${result}    Create session    ${template}_double_dep
+    Set Global Variable    ${session_id}    ${result['id']}
+    Create service    ${template}_double_dep    IIS    IIS_2_deploy
+    Deploy session    ${template}_double_dep    ${session_id}
+    Wait Until Keyword Succeeds    20m    10s    Check Environment    ${template}_double_dep    ready
+    ${result}    Get deployments    ${template}_double_dep
+    ${result}    Get deployment info    ${template}_double_dep    ${result['deployments'][0]['id']}
+    Format deploy report    ${result}
+    Get Environment ID    ${template}_double_dep
+    #Delete environment    ${template}_double_dep
+
+Delete deployment in time of deploy
+    [Tags]    thread5
+    Create environment    ${template}_deploy_ad0
+    ${result}    Create session    ${template}_deploy_ad0
+    Set Global Variable    ${session_id}    ${result['id']}
+    Create service    ${template}_deploy_ad0    AD    AD_2_deploy.com
+    Get deployments    ${template}_deploy_ad0
+    Deploy session    ${template}_deploy_ad0    ${session_id}
+    ${result}    Get deployments    ${template}_deploy_ad0
+    Get deployment info    ${template}_deploy_ad0    ${result['deployments'][0]['id']}
+    Sleep    1m
+    ${result}    Get deployments    ${template}_deploy_ad0
+    Get deployment info    ${template}_deploy_ad0    ${result['deployments'][0]['id']}
+    Sleep    1m
+    ${result}    Get deployments    ${template}_deploy_ad0
+    ${result}    Get deployment info    ${template}_deploy_ad0    ${result['deployments'][0]['id']}
+    Format deploy report    ${result}
+    #Delete environment    ${template}_deploy_ad0
+
+Delete session after deploy
+    [Tags]    thread5
+    Create environment    ${template}_deploy_ad
+    ${result}    Create session    ${template}_deploy_ad
+    Set Global Variable    ${session_id}    ${result['id']}
+    Create service    ${template}_deploy_ad    AD    AD_2_deploy
+    Deploy session    ${template}_deploy_ad    ${session_id}
+    Wait Until Keyword Succeeds    60m    20s    Check Environment    ${template}_deploy_ad    ready
+    Delete session    ${template}_deploy_ad    ${session_id}    200
+    Delete session    ${template}_deploy_ad    ${session_id}    404
+    Delete environment    ${template}_deploy_ad
+    Delete session    ${template}_deploy_ad    ${session_id}    404

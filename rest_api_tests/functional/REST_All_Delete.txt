@@ -1,0 +1,20 @@
+*** Settings ***
+Library           simple_REST.py
+Library           Collections
+Resource          rest.txt
+
+*** Test Cases ***
+Begin of testing
+    [Tags]    thread1
+    Get X-Auth-Token    ${ip_keystone}
+    Get Headers
+
+Delete all environments
+    [Tags]    thread1
+    Delete All Environments
+
+Get empty list of environments
+    [Tags]    thread1
+    ${result}    Get List Of Environments
+    ${len}    Get Length    ${result['environments']}
+    Should Be Equal As Integers    ${len}    0

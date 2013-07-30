@@ -1,0 +1,358 @@
+*** Settings ***
+Library           simple_REST.py
+Library           Collections
+
+*** Variables ***
+${ip}             172.18.79.80
+${ip_keystone}    172.18.124.201
+${user}           admin
+${password}       swordfish
+${template}       jenkins
+
+*** Keywords ***
+Get X-Auth-Token
+    [Arguments]    ${ip}    ${user}="admin"    ${password}="swordfish"    ${project}="admin"
+    [Documentation]    This function allows to get X-Auth-Token for requests headers
+    ...
+    ...    Examples:
+    ...    You can use this function with default values:
+    ...    | *Get X-Auth-Token* \ | 10.10.10.1 |
+    ...    | *POST Request* \ | 10.10.10.1:8082/environments |
+    ...
+    ...    Or specify custom values for authentication:
+    ...    | *Get X-Auth-Token* \ | 10.10.10.1 | user | password |
+    ...    | *GET Request* \ \ \ \ \ \ \ | 10.10.10.1:8082/environments |
+    Set Headers    {"Content-Type":"application/json"}
+    ${auth}    Set Variable    {"auth": {"tenantName": ${project}, "passwordCredentials": {"username": ${user}, "password": ${password}}}}
+    Set Body    ${auth}
+    POST Request    http://${ip}:5000/v2.0/tokens
+    ${body}    Get Response Body
+    Update Headers    X-Auth-Token    ${body['access']['token']['id']}
+
+Get List Of Environments
+    [Arguments]    ${wait_resp}=200
+    [Documentation]    This function returns list of all environments.
+    ...    Return response body with environments
+    ...
+    ...    Examples:
+    ...    | \ ${result} \ | *Get List Of Environments* \ \ |
+    ...    | \ *LOG* \ | ${result['environments']} \ |
+    GET request    http://${ip}:8082/environments
+    ${resp_code}    Get Response Code
+    Should Be Equal As Integers    ${wait_resp}    ${resp_code}
+    ${result}    get response body
+    [Return]    ${result}
+
+Create Environment
+    [Arguments]    ${environment_name}    ${wait_resp}=200
+    [Documentation]    This function sends POST request to create new environment
+    ...    Return response body
+    ...
+    ...    Examples
+    ...    | *Create Environment* \ | \ env001 |
+    Set body    {"name":"${environment_name}"}
+    POST request    http://${ip}:8082/environments
+    ${resp_code}    Get Response Code
+    Should Be Equal As Integers    ${wait_resp}    ${resp_code}
+    ${result}    get response body
+    [Return]    ${result}
+
+Get Environment ID
+    [Arguments]    ${environment_name}
+    [Documentation]    This function returns *ID* of environment
+    ...
+    ...    Examples:
+    ...    | *Create Environment* \ | test |
+    ...    | ${id} \ | *Get Environment ID* | \ test |
+    ...    | *LOG* \ | ${id} |
+    ${environment_id}    Set Variable    None
+    ${data}    Get List Of Environments
+    @{environments_list}    Convert To List    ${data['environments']}
+    : FOR    ${x}    IN    @{environments_list}
+    \    ${environment_id} =    Set Variable If    "${x['name']}" == "${environment_name}"    ${x['id']}    ${environment_id}
+    [Return]    ${environment_id}
+
+Update Environment
+    [Arguments]    ${environment_name}    ${new_environment_name}    ${wait_resp}=200
+    [Documentation]    This function sends PUT request to update environment
+    ...    Return response body
+    ...
+    ...    Examples
+    ...    | *Create Environment* \ | \ env001 |
+    ...    | *Update Environment* \ | \ env001 | \ env001_modify |
+    Set body    {"name":"${new_environment_name}"}
+    ${env_id}    Get Environment ID    ${environment_name}
+    PUT request    http://${ip}:8082/environments/${env_id}
+    ${resp_code}    Get Response Code
+    Should Be Equal As Integers    ${wait_resp}    ${resp_code}
+    ${result}    get response body
+    [Return]    ${result}
+
+Check Environment
+    [Arguments]    ${environment_name}    ${status}
+    [Documentation]    This function check environment for given status
+    ...
+    ...    Examples:
+    ...    | *Create Environment* \ | test00 |
+    ...    | *Check Environment* \ | test01 | ready |
+    ${env_id}    Get Environment ID    ${environment_name}
+    ${environment_status}    Set Variable    None
+    ${data}    Get List Of Environments
+    @{environments_list}    Convert To List    ${data['environments']}
+    : FOR    ${x}    IN    @{environments_list}
+    \    ${environment_status} =    Set Variable If    "${x['name']}" == "${environment_name}"    ${x['status']}    ${environment_status}
+    Log    ${environment_status}
+    Should Be Equal    ${status}    ${environment_status}
+
+Delete Environment
+    [Arguments]    ${environment_name}    ${wait_resp}=200
+    [Documentation]    This function sends DELETE request to delete one environment
+    ...
+    ...    Examples:
+    ...    | *Create Environment* | test |
+    ...    | *Delete Environment* | test |
+    ${env_id}    Get Environment ID    ${environment_name}
+    DELETE request    http://${ip}:8082/environments/${env_id}
+    ${resp_code}    Get Response Code
+    Should Be Equal As Integers    ${wait_resp}    ${resp_code}
+
+Delete All Environments
+    ${result}    Get List Of Environments
+    @{list}    Convert To List    ${result['environments']}
+    : FOR    ${environment}    IN    @{list}
+    \    Delete Environment    ${environment['name']}
+
+Format List
+    [Arguments]    ${list_2_format}
+    [Documentation]    This function log list in nice view with name and id
+    ...
+    ...    Examples:
+    ...    | *Create Environment* \ | test00 |
+    ...    | *Create Environment* \ | test01 |
+    ...    | ${id} \ | *Get List of Environments* |
+    ...    | *Format List* \ | ${id['environments']} |
+    ${nice_list} =    Create List
+    @{list}    Convert To List    ${list_2_format}
+    : FOR    ${x}    IN    @{list}
+    \    Append To List    ${nice_list}    ${x['name']}, id: ${x['id']}
+    Log List    ${nice_list}
+    [Return]    ${nice_list}
+
+Create Session
+    [Arguments]    ${environment_name}    ${wait_resp}=200
+    [Documentation]    This function sends POST request to create new session
+    ...    in environment_name
+    ...
+    ...    Examples
+    ...    | *Create Environment* \ | \ env001 |
+    ...    | \${result} | *Create Session* \ | \ env001 |
+    ${env_id}    Get Environment ID    ${environment_name}
+    POST request wo body    http://${ip}:8082/environments/${env_id}/configure
+    ${resp_code}    Get Response Code
+    Should Be Equal As Integers    ${wait_resp}    ${resp_code}
+    ${resp}    Get Response body
+    ${session_id}    Set Variable    ${resp['id']}
+    Log    ${session_id}
+    Update Headers    X-Configuration-Session    ${session_id}
+    [Return]    ${resp}
+
+Get session information
+    [Arguments]    ${environment_name}    ${session_id}    ${wait_resp}=200
+    [Documentation]    This function sends GET request to get session information
+    ...    with session_id in environment_name. Return response body.
+    ...
+    ...    Examples
+    ...    | *Create Environment* \ | \ env001 |
+    ...    | \${result} | *Create Session* \ | \ env001 |
+    ...    | *Get Session Information* \ | \${result['id']} |
+    ${env_id}    Get Environment ID    ${environment_name}
+    GET request    http://${ip}:8082/environments/${env_id}/sessions/${session_id}
+    ${resp_code}    Get Response Code
+    Should Be Equal As Integers    ${wait_resp}    ${resp_code}
+    ${resp}    Get Response body
+    [Return]    ${resp}
+
+Format session report
+    [Arguments]    ${session_report}
+    [Documentation]    This function format report to user-frienly view
+    ...    Return list
+    ...
+    ...    Examples
+    ...    | *Create Environment* \ | \ env001 |
+    ...    | \${result} | *Create Session* \ | \ env001 |
+    ...    | *Create AD* \ | \ env001 | \ ad001 |
+    ...    | *Deploy Session* \ | \${result['id']} |
+    ...    | \${report} | *Get Session Reports* \ | \${result['id']} |
+    ...    | \${rep} | *Format session report* \ | \${report} |
+    ...    | *Log* | \${rep} |
+    ${nice_list} =    Create List
+    @{list}    Convert To List    ${session_report['reports']}
+    : FOR    ${x}    IN    @{list}
+    \    Append To List    ${nice_list}    time: ${x['created']}, text: ${x['text']}
+    Log List    ${nice_list}
+    [Return]    ${nice_list}
+
+Deploy session
+    [Arguments]    ${environment_name}    ${session_id}    ${wait_resp}=200
+    [Documentation]    This function sends POST request to deploy session
+    ...    with session_id in environment_name. No return
+    ...
+    ...    Examples
+    ...    | *Create Environment* \ | \ env001 |
+    ...    | \${result} | *Create Session* \ | \ env001 |
+    ...    | *Deploy Session* \ | \${result['id']} |
+    ${env_id}    Get Environment ID    ${environment_name}
+    POST request wo body    http://${ip}:8082/environments/${env_id}/sessions/${session_id}/deploy
+    ${resp_code}    Get Response Code
+    Should Be Equal As Integers    ${wait_resp}    ${resp_code}
+
+Delete session
+    [Arguments]    ${environment_name}    ${session_id}    ${wait_resp}=200
+    [Documentation]    This function sends DELETE request to delete session
+    ...    with session_id in environment_name
+    ...
+    ...    Examples
+    ...    | *Create Environment* \ | \ env001 |
+    ...    | \${result} | *Create Session* \ | \ env001 |
+    ...    | *Delete Session* \ | \${result['id']} |
+    ${env_id}    Get Environment ID    ${environment_name}
+    DELETE request    http://${ip}:8082/environments/${env_id}/sessions/${session_id}
+    ${resp_code}    Get Response Code
+    Should Be Equal As Integers    ${wait_resp}    ${resp_code}
+
+Get deployments
+    [Arguments]    ${environment_name}    ${wait_resp}=200
+    [Documentation]    This function sends GET request to get deployments of
+    ...    environment_name. Return response body
+    ...
+    ...    Examples
+    ...    | *Create Environment* \ | \ env001 |
+    ...    | \${result} | *Create Session* \ | \ env001 |
+    ...    | *Deploy Session* \ | \${result['id']} |
+    ${env_id}    Get Environment ID    ${environment_name}
+    GET request    http://${ip}:8082/environments/${env_id}/deployments
+    ${resp_code}    Get Response Code
+    Should Be Equal As Integers    ${wait_resp}    ${resp_code}
+    ${resp}    Get Response body
+    [Return]    ${resp}
+
+Get deployment info
+    [Arguments]    ${environment_name}    ${deploy_id}    ${wait_resp}=200
+    [Documentation]    This function sends GET request to get deployments of
+    ...    environment_name. Return response body
+    ...
+    ...    Examples
+    ...    | *Create Environment* \ | \ env001 |
+    ...    | \${result} | *Create Session* \ | \ env001 |
+    ...    | *Deploy Session* \ | \${result['id']} |
+    ${env_id}    Get Environment ID    ${environment_name}
+    GET request    http://${ip}:8082/environments/${env_id}/deployments/${deploy_id}
+    ${resp_code}    Get Response Code
+    Should Be Equal As Integers    ${wait_resp}    ${resp_code}
+    ${resp}    Get Response body
+    [Return]    ${resp}
+
+Format deploy report
+    [Arguments]    ${deploy_report}
+    [Documentation]    This function format report to user-frienly view
+    ...    Return list
+    ...
+    ...    Examples
+    ...    | *Create Environment* \ | \ env001 |
+    ...    | \${result} | *Create Session* \ | \ env001 |
+    ...    | *Create AD* \ | \ env001 | \ ad001 |
+    ...    | *Deploy Session* \ | \${result['id']} |
+    ...    | \${report} | *Get Session Reports* \ | \${result['id']} |
+    ...    | \${rep} | *Format session report* \ | \${report} |
+    ...    | *Log* | \${rep} |
+    ${nice_list} =    Create List
+    @{list}    Convert To List    ${deploy_report['reports']}
+    : FOR    ${x}    IN    @{list}
+    \    Append To List    ${nice_list}    time: ${x['created']}, text: ${x['text']}
+    Log List    ${nice_list}
+    [Return]    ${nice_list}
+
+Create service
+    [Arguments]    ${environment_name}    ${type}    ${service_name}    ${wait_resp}=200
+    [Documentation]    This function sends POST request to create new service
+    ...    of given type with name service_name in environment_name.
+    ...    Header must be filled correctly.
+    ...    Return response body.
+    ...
+    ...    Examples
+    ...    | *Create Environment* \ | \ env001 |
+    ...    | *Create Session* \ | \ env001 |
+    ...    | *Create service* \ | \ env001 | \ AD | \ qwerty.com |
+    ...    | *Create service* \ | \ env001 | \ IIS | \ qwe |
+    ${env_id}    Get Environment ID    ${environment_name}
+    ${body}    Set Variable    None
+    ${body} =    Set Variable If    "${type}" == "AD"    {"type": "activeDirectory","name": "${service_name}", "adminPassword": "P@ssw0rd", "domain": "${service_name}", "availabilityZone": "'Region1", "unitNamingPattern": "", "flavor": "m1.medium", "configuration": "standalone", "units": [{"isMaster": true, "recoveryPassword": "P@ssw0rd", "location": "west-dc"}, {"isMaster": false, "recoveryPassword": "P@ssw0rd"}]}    ${body}
+    ${body} =    Set Variable If    "${type}" == "IIS"    {"type": "webServer", "name": "${service_name}", "adminPassword": "swordfish", "domain": "acme.dc", "units": [{}]}    ${body}
+    ${body} =    Set Variable If    "${type}" == "ASP"    {"type": "aspNetApp", "name": "${service_name}", "credentials": {"username": "Administrator","password": "swordfish"}, "domain": "acme.dc", "adminPassword": "swordfish", "units":[{}], "repository": "git://github.com/Mirantis/murano-mvc-demo.git"}    ${body}
+    ${body} =    Set Variable If    "${type}" == "IIS Farm"    {"type": "webServerFarm", "name": "${service_name}", "adminPassword": "swordfish", "domain": "acme.dc", "units": [{}], "loadBalancerPort": "80"}    ${body}
+    ${body} =    Set Variable If    "${type}" == "ASP Farm"    {"type": "aspNetAppFarm", "name": "${service_name}", "credentials": {"username": "Administrator","password": "swordfish"}, "domain": "acme.dc", "adminPassword": "swordfish", "units":[{}], "repository": "git://github.com/Mirantis/murano-mvc-demo.git", "loadBalancerPort": "80"}    ${body}
+    Set Body    ${body}
+    POST request    http://${ip}:8082/environments/${env_id}/services
+    ${resp_code}    Get Response Code
+    Should Be Equal As Integers    ${wait_resp}    ${resp_code}
+    ${resp}    Get Response body
+    [Return]    ${resp}
+
+Get List of
+    [Arguments]    ${service_type}    ${environment_name}    ${wait_resp}=200
+    [Documentation]    This function sends GET request to list services with
+    ...    given service_type in environment_name. Header must be filled correctly.
+    ...    Service_type may be "All Services", "AD", "IIS", "ASP", "IIS Farm" or "ASP Farm"
+    ...    Incorrect service_type equated to "All Service".
+    ...    Return response body.
+    ...
+    ...    Examples
+    ...    | *Create Environment* \ | \ env001 |
+    ...    | *Create Session* \ | \ env001 |
+    ...    | *Create * \ | \ env001 | \ AD | \ ad001 |
+    ...    | *Get List of* \ | \ AD | \ env001 |
+    ...    | *Get List of* \ | \ IIS | \ env001 |
+    ...    | *Get List of* \ | \ ASP Farm | \ env001 |
+    ${env_id}    Get Environment ID    ${environment_name}
+    GET request    http://${ip}:8082/environments/${env_id}/services
+    ${resp_code}    Get Response Code
+    Should Be Equal As Integers    ${wait_resp}    ${resp_code}
+    ${resp}    Get Response body
+    ${type}    Set Variable    "All Services"
+    ${type}    Set Variable If    "${service_type}" == "AD"    "activeDirectory"    ${type}
+    ${type}    Set Variable If    "${service_type}" == "IIS"    "webServer"    ${type}
+    ${type}    Set Variable If    "${service_type}" == "ASP"    "aspNetApp"    ${type}
+    ${type}    Set Variable If    "${service_type}" == "IIS Farm"    "webServerFarm"    ${type}
+    ${type}    Set Variable If    "${service_type}" == "ASP Farm"    "aspNetAppFarm"    ${type}
+    ${service_list} =    Create List
+    @{list}    Convert To List    ${resp}
+    : FOR    ${x}    IN    @{list}
+    \    Run Keyword If    ${type} == "All Services"    Append To List    ${service_list}    ${x}
+    \    Run Keyword If    "${x['type']}" == ${type}    Append To List    ${service_list}    ${x}
+    Log List    ${service_list}
+    [Return]    ${service_list}
+
+Delete service
+    [Arguments]    ${environment_name}    ${service_name}    ${wait_resp}=200
+    [Documentation]    This function sends DELETE request to delete service_name
+    ...    in environment_name. Header must be filled correctly.
+    ...    Service_type is not specified.
+    ...
+    ...    Examples
+    ...    | *Create Environment* \ | \ env001 |
+    ...    | *Create Session* \ | \ env001 |
+    ...    | *Create service* \ | \ env001 | \ AD | \ ad001 |
+    ...    | *Delete service* \ | \ env001 | \ ad001 |
+    ${env_id}    Get Environment ID    ${environment_name}
+    GET request    http://${ip}:8082/environments/${env_id}/services
+    ${resp_code}    Get Response Code
+    Should Be Equal As Integers    ${wait_resp}    ${resp_code}
+    ${resp}    Get Response body
+    ${ser_id}    Set Variable    None
+    ${service_list} =    Create List
+    @{list}    Convert To List    ${resp}
+    : FOR    ${x}    IN    @{list}
+    \    ${ser_id} =    Set Variable If    "${x['name']}" == "${service_name}"    ${x['id']}    ${ser_id}
+    DELETE request    http://${ip}:8082/environments/${env_id}/services/${ser_id}
+    ${resp_code}    Get Response Code
+    Should Be Equal As Integers    ${wait_resp}    ${resp_code}
