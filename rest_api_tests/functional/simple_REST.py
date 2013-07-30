@@ -158,6 +158,9 @@ class simple_REST:
             | *DELETE request*  | http://10.10.10.1:8082/environments |
             | ${code}           | *Get Response Code* |
         """
+        if self.response:
+            if self.response.status_code == 500:
+                LOG.debug(self.response)
         return self.response.status_code
 
     def get_response_body(self):
