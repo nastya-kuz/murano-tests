@@ -159,8 +159,8 @@ class simple_REST:
             | ${code}           | *Get Response Code* |
         """
         if self.response:
-            if self.response.status_code == 500:
-                LOG.debug(self.response)
+            if self.response.status_code != 200:
+                LOG.debug(self.response.text)
         return self.response.status_code
 
     def get_response_body(self):
@@ -173,10 +173,9 @@ class simple_REST:
             | *GET request*     | http://10.10.10.1:8082/environments |
             | ${body}           | *Get Response Body* |
         """
-        LOG.debug(self.response.text)
         try: 
             return_text = json.loads(self.response.text)
         except: 
-            return_text = {}
+            return_text = self.response.text
         return return_text
 

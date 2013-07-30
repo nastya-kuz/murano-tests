@@ -1,6 +1,7 @@
 *** Settings ***
 Library           simple_REST.py
 Library           Collections
+Resource          new_rest_keywords.txt
 
 *** Variables ***
 ${ip}             172.18.79.80
@@ -117,6 +118,7 @@ Delete Environment
     Should Be Equal As Integers    ${wait_resp}    ${resp_code}
 
 Delete All Environments
+    Set Default Headers
     ${result}    Get List Of Environments
     @{list}    Convert To List    ${result['environments']}
     : FOR    ${environment}    IN    @{list}
