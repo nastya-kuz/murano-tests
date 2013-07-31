@@ -95,15 +95,11 @@ class simple_REST:
             | *Set Body*        | {"name":"test"} |
             | *POST request*    | http://10.10.10.1:8082/environments |
         """
-        LOG.debug(url)
-        LOG.debug(self.headers)
-        LOG.debug(self.body)
         self.response = requests.request('POST', url,
                                          headers=self.headers,
                                          data=str(self.body))
-        LOG.debug(self.response.text)
 
-    def POST_request_wo_body (self, url):
+    def POST_request_without_body(self, url):
         """
             This function allows to send POST requests
 
@@ -113,11 +109,8 @@ class simple_REST:
             | *Set Body*        | {"name":"test"} |
             | *POST request*    | http://10.10.10.1:8082/environments |
         """
-        LOG.debug(url)
-        LOG.debug(self.headers)
         self.response = requests.request('POST', url,
                                          headers=self.headers)
-        LOG.debug(self.response.text)
 
     def DELETE_request(self, url):
         """
@@ -128,7 +121,8 @@ class simple_REST:
             | *Set Headers*     | Content-Type | application/json |
             | *DELETE request*  | http://10.10.10.1:8082/environments |
         """
-        self.response = requests.request('DELETE', url=url, headers=self.headers)
+        self.response = requests.request('DELETE', url=url,
+                                         headers=self.headers)
 
     def PUT_request(self, url):
         """
@@ -138,15 +132,11 @@ class simple_REST:
             | *Clear Headers*   |
             | *Set Headers*     | Content-Type | application/json |
             | *Set Body*        | {"name":"test-changed"} |
-            | *PUT request*     | http://10.10.10.1:8082/environments/368712634876 |
+            | *PUT request*     | http://10.10.10.1:8082/634876 |
         """
-        LOG.debug(url)
-        LOG.debug(self.headers)
-        LOG.debug(self.body)
         self.response = requests.request('PUT', url,
                                          headers=self.headers,
                                          data=str(self.body))
-        LOG.debug(self.response.text)
 
     def get_response_code(self):
         """
@@ -178,4 +168,3 @@ class simple_REST:
         except: 
             return_text = self.response.text
         return return_text
-

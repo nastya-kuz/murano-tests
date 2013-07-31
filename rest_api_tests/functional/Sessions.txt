@@ -1,0 +1,100 @@
+*** Settings ***
+Suite Setup
+Library           simple_REST.py
+Resource          keywords.txt
+
+*** Test Cases ***
+Create session for environment
+    [Setup]    Set Default Headers
+    User send a POST request to '/environments' with body {"name": "test001"}
+    The response code should be 200
+    ${id}    Get Environment ID by name    test001
+    User send a POST request to '/environments/${id}/configure' without body
+    The response code should be 200
+    The response body should have key 'environment_id' with value "${id}"
+
+Get session parameters
+    [Setup]    Set Default Headers
+    User send a POST request to '/environments' with body {"name": "test002"}
+    The response code should be 200
+    ${id}    Get Environment ID by name    test002
+    User send a POST request to '/environments/${id}/configure' without body
+    The response code should be 200
+    ${session}    Get Response Body
+    User send a GET request to '/environments/${id}/sessions/${session['id']}'
+    The response code should be 200
+    The response body should have keys    id    environment_id    created    updated
+    The response body should have keys    user_id    version    state
+    The response body should have key 'state' with value "open"
+
+Create a few sessions for one environment
+    [Setup]    Set Default Headers
+    User send a POST request to '/environments' with body {"name": "test003"}
+    The response code should be 200
+    ${id}    Get Environment ID by name    test003
+    User send a POST request to '/environments/${id}/configure' without body
+    The response code should be 200
+    ${session1}    Get Response Body
+    User send a POST request to '/environments/${id}/configure' without body
+    The response code should be 200
+    ${session2}    Get Response Body
+    User send a POST request to '/environments/${id}/configure' without body
+    The response code should be 200
+    ${session3}    Get Response Body
+    User send a GET request to '/environments/${id}/sessions/${session1['id']}'
+    The response code should be 200
+    User send a GET request to '/environments/${id}/sessions/${session2['id']}'
+    The response code should be 200
+    User send a GET request to '/environments/${id}/sessions/${session3['id']}'
+    The response code should be 200
+
+Deploy empty session
+    [Tags]    bug    MRN-706
+    [Setup]    Set Default Headers
+    User send a POST request to '/environments' with body {"name": "test004-test"}
+    The response code should be 200
+    ${id}    Get Environment ID by name    test004-test
+    User send a POST request to '/environments/${id}/configure' without body
+    The response code should be 200
+    ${session}    Get Response Body
+    User send a POST request to '/environments/${id}/sessions/${session['id']}/deploy' without body
+    The response code should be 200
+    Sleep    5
+    User send a GET request to '/environments/${id}/sessions/${session['id']}'
+    The response body should have key 'state' with value "open"
+
+Delete session
+    [Setup]    Set Default Headers
+    User send a POST request to '/environments' with body {"name": "test005"}
+    The response code should be 200
+    ${id}    Get Environment ID by name    test005
+    User send a POST request to '/environments/${id}/configure' without body
+    The response code should be 200
+    ${session}    Get Response Body
+    User send a DELETE request to '/environments/${id}/sessions/${session['id']}'
+    The response code should be 200
+    User send a GET request to '/environments/${id}/sessions/${session['id']}'
+    The response code should be 404
+
+Delete only one session
+    [Setup]    Set Default Headers
+    User send a POST request to '/environments' with body {"name": "test006"}
+    The response code should be 200
+    ${id}    Get Environment ID by name    test006
+    User send a POST request to '/environments/${id}/configure' without body
+    The response code should be 200
+    ${session1}    Get Response Body
+    User send a POST request to '/environments/${id}/configure' without body
+    The response code should be 200
+    ${session2}    Get Response Body
+    User send a POST request to '/environments/${id}/configure' without body
+    The response code should be 200
+    ${session3}    Get Response Body
+    User send a DELETE request to '/environments/${id}/sessions/${session2['id']}'
+    The response code should be 200
+    User send a GET request to '/environments/${id}/sessions/${session2['id']}'
+    The response code should be 404
+    User send a GET request to '/environments/${id}/sessions/${session1['id']}'
+    The response code should be 200
+    User send a GET request to '/environments/${id}/sessions/${session3['id']}'
+    The response code should be 200

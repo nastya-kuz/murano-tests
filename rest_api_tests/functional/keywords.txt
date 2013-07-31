@@ -1,11 +1,12 @@
 *** Settings ***
 Library           simple_REST.py
-Resource          rest.txt
+Library           Collections
 
 *** Variables ***
 ${ip}             172.18.79.80
 ${ip_keystone}    172.18.124.201
 ${user}           admin
+${project}        admin
 ${password}       swordfish
 ${template}       jenkinss
 ${url}            http://?
@@ -19,6 +20,12 @@ User send a POST request to '${end_point}' with body ${body}
     Log    "POST request on link ${url} with body ${request_body}"
     Set Body    ${request_body}
     POST Request    ${url}
+
+User send a POST request to '${end_point}' without body
+    Set Global Variable    ${url}    http://${ip}:8082${end_point}
+    Set Global Variable    ${method}    POST
+    Log    "POST request on link ${url} without body"
+    POST Request Without Body    ${url}
 
 User send a PUT request to '${end_point}' with body ${body}
     ${request_body}    Set Variable    ${body}
@@ -39,6 +46,17 @@ User send a DELETE request to '${end_point}'
     Set Global Variable    ${method}    DELETE
     Log    "DELETE request on link ${url}"
     DELETE Request    ${url}
+
+Get Environment ID by name
+    [Arguments]    ${name}
+    ${id}    Set Variable    None
+    User send a GET request to '/environments'
+    The response code should be 200
+    ${body}    Get Response Body
+    @{environments}    Convert To List    ${body['environments']}
+    : FOR    ${x}    IN    @{environments}
+    \    ${id} =    Set Variable If    "${x['name']}" == "${name}"    ${x['id']}
+    [Return]    ${id}
 
 The response code should be ${status_code}
     ${response_body}    Get Response Body
@@ -85,4 +103,10 @@ The response body parameter '${para}' should have key '${key}' with value "${val
     Should Be Equal    ${body['${para}']['${key}']}    ${value}
 
 Set Default Headers
-    Get X-Auth-Token    ${ip_keystone}
+    Set Headers    {"Content-Type": "application/json"}
+    ${body}    Set Variable    {"auth": {"tenantName": "${project}", "passwordCredentials": {"username": "${user}", "password": "${password}"}}}
+    Set Body    ${body}
+    POST Request    http://${ip_keystone}:5000/v2.0/tokens
+    The response code should be 200
+    ${body}    Get Response Body
+    Update Headers    X-Auth-Token    ${body['access']['token']['id']}

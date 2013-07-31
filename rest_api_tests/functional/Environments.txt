@@ -1,8 +1,7 @@
 *** Settings ***
 Suite Setup
 Library           simple_REST.py
-Resource          new_rest_keywords.txt
-Resource          rest.txt
+Resource          keywords.txt
 
 *** Test Cases ***
 Create environment
@@ -19,94 +18,22 @@ Get list of environments
 
 Update Environment
     [Setup]    Set Default Headers
-    ${id}    Get Environment ID    test
+    ${id}    Get Environment ID by name    test
     User send a PUT request to '/environments/${id}' with body {"name": "new_name"}
     The response code should be 200
     The response body should have key 'name' with value "new_name"
 
 Get environment parameters
     [Setup]    Set Default Headers
-    ${id}    Get Environment ID    new_name
+    ${id}    Get Environment ID by name    new_name
     User send a GET request to '/environments/${id}'
     The response body should have keys    status    created    updated    version
     The response body should have keys    id    name    services
 
-Get environment parameter name
-    [Setup]    Set Default Headers
-    ${id}    Get Environment ID    new_name
-    User send a GET request to '/environments/${id}/name'
-    The response code should be 200
-    The response body should be "new_name"
-
-Get environment parameter id
-    [Setup]    Set Default Headers
-    ${id}    Get Environment ID    new_name
-    User send a GET request to '/environments/${id}/id'
-    The response code should be 200
-    The response body should be "${id}"
-
-Get environment parameter services
-    [Setup]    Set Default Headers
-    ${id}    Get Environment ID    new_name
-    User send a GET request to '/environments/${id}/id'
-    The response code should be 200
-    The response body should be []
-
-Set environment parameter name
-    [Setup]    Set Default Headers
-    ${id}    Get Environment ID    new_name
-    User send a PUT request to '/environments/${id}/name' with body "new2"
-    The response code should be 200
-    The response body should be "new2"
-
-Set environment parameter id
-    [Setup]    Set Default Headers
-    ${id}    Get Environment ID    new_name
-    User send a PUT request to '/environments/${id}/id' with body "new2"
-    The response code should be 200
-    The response body should be "new2"
-
-Set environment parameter version
-    [Setup]    Set Default Headers
-    ${id}    Get Environment ID    new_name
-    User send a PUT request to '/environments/${id}/version' with body "2.0"
-    The response code should be 200
-    The response body should be "2.0"
-
-Set environment parameter services
-    [Setup]    Set Default Headers
-    ${id}    Get Environment ID    new_name
-    User send a PUT request to '/environments/${id}/services' with body {"name": "service1"}
-    The response code should be 200
-    The response body should be {"name": "service1"}
-
-Add new parameter for environment
-    [Setup]    Set Default Headers
-    ${id}    Get Environment ID    new_name
-    User send a PUT request to '/environments/${id}/bugs' with body [1,2,3,4,5]
-    The response code should be 200
-    The response body should be [1,2,3,4,5]
-
-Delete required parameter for environment
-    [Setup]    Set Default Headers
-    ${id}    Get Environment ID    new_name
-    User send a DELETE request to '/environments/${id}/id'
-    The response code should be 200
-
-Delete optional parameter for environment
-    [Setup]    Set Default Headers
-    ${id}    Get Environment ID    new_name
-    User send a DELETE request to '/environments/${id}/version'
-    The response code should be 200
-
-Delete extra parameter for environment
-    [Setup]    Set Default Headers
-    ${id}    Get Environment ID    new_name
-    User send a DELETE request to '/environments/${id}/bugs'
-    The response code should be 200
-
 Delete Environment
     [Setup]    Set Default Headers
-    ${id}    Get Environment ID    new_name
+    ${id}    Get Environment ID by name    new_name
     User send a DELETE request to '/environments/${id}'
     The response code should be 200
+    User send a GET request to '/environments/${id}'
+    The response code should be 404
