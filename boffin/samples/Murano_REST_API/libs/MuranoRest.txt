@@ -1,0 +1,707 @@
+*** Settings ***
+Library         Boffin.Rest
+Library         Collections
+
+*** Keywords ***
+Get List Of Environments
+  [Documentation]  Gets list of all environments.
+  ...
+  ...  *Arguments:*
+  ...  - None.
+  ...
+  ...  *Return:*
+  ...  - response body with environments.
+  ...
+  ...  *Examples:*
+  ...  | ${result} | Get List Of Environments |
+  ...  | *LOG* | ${result['environments']} |
+  GET request  http://${ip}:8082/environments
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${result}  get response body
+  [Return]  ${result}
+
+Create Environment
+  [Arguments]  ${environment_name}
+  [Documentation]  Sends POST request to create new environment.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | Create Environment | env001 |
+  Set body  {"name":"${environment_name}"}
+  POST request  http://${ip}:8082/environments
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${result}  get response body
+  [Return]  ${result}
+
+Get Environment ID
+  [Arguments]  ${environment_name}
+  [Documentation]  Gets environment id.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...
+  ...  *Return:*
+  ...  - environment id.
+  ...
+  ...  *Examples:*
+  ...  | ${id} | Get Environment ID | test |
+  ${environment_id}  Set Variable  None
+  ${data}  Get List Of Environments
+  @{environments_list}  Convert To List  ${data['environments']}
+  : FOR  ${x}  IN  @{environments_list}
+  \  ${environment_id} =  Set Variable If  "${x['name']}" == "${environment_name}"  ${x['id']}  ${environment_id}
+  [Return]  ${environment_id}
+
+Update Environment
+  [Arguments]  ${environment_name}  ${new_environment_name}
+  [Documentation]  Sends PUT request to update environment.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...  - new_environment_name: new environment name.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | Update Environment | env001 | env001_modify |
+  Set body  {"name":"${new_environment_name}"}
+  ${env_id}  Get Environment ID  ${environment_name}
+  PUT request  http://${ip}:8082/environments/${env_id}
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${result}  get response body
+  [Return]  ${result}
+
+Delete Environment
+  [Arguments]  ${environment_name}
+  [Documentation]  Sends DELETE request to delete one environment.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...
+  ...  *Return:*
+  ...  - None.
+  ...
+  ...  *Examples:*
+  ...  | Delete Environment | test |
+  ${env_id}  Get Environment ID  ${environment_name}
+  DELETE request  http://${ip}:8082/environments/${env_id}
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+
+Delete All Environments
+  [Documentation]  Sends DELETE request to delete all environments.
+  ...
+  ...  *Arguments:*
+  ...  - None.
+  ...
+  ...  *Return:*
+  ...  - None.
+  ...
+  ...  *Examples:*
+  ...  | Delete All Environment |
+  Get X-Auth-Token  ${ip}
+  ${result}  Get List Of Environments
+  @{list}  Convert To List  ${result['environments']}
+  : FOR  ${environment}  IN  @{list}
+  \  Delete Environment  ${environment['name']}
+
+Get X-Auth-Token
+  [Arguments]  ${ip}  ${user}="admin"  ${password}="swordfish"
+  [Documentation]  Gets X-Auth-Token for requests headers.
+  ...
+  ...  *Arguments:*
+  ...  - ip: ip.
+  ...  - user: user name.
+  ...  - password: user password.
+  ...
+  ...  *Return:*
+  ...  - None.
+  ...
+  ...  *Examples:*
+  ...  | Get X-Auth-Token | 10.10.10.1 |
+  Set Headers  {"Content-Type":"application/json"}
+  ${auth}  Set Variable  {"auth": {"tenantName": ${user}, "passwordCredentials": {"username": ${user}, "password": ${password}}}}
+  Set Body  ${auth}
+  POST Request  http://${ip}:5000/v2.0/tokens
+  ${body}  Get Response Body
+  Update Headers  X-Auth-Token  ${body['access']['token']['id']}
+
+Format List
+  [Arguments]  ${list_2_format}
+  [Documentation]  Formats list in pretty view with name and id.
+  ...
+  ...  *Arguments:*
+  ...  - list_2_format: list that will be formatted.
+  ...
+  ...  *Return:*
+  ...  - None.
+  ...
+  ...  *Examples:*
+  ...  | Format List | ${id['environments']} |
+  ${nice_list} =  Create List
+  @{list}  Convert To List  ${list_2_format}
+  : FOR  ${x}  IN  @{list}
+  \  Append To List  ${nice_list}  ${x['name']}, id: ${x['id']}
+  Log List  ${nice_list}
+  [Return]  ${nice_list}
+
+Get List of All Services
+  [Arguments]  ${environment_name}
+  [Documentation]  Sends GET requests to list all services
+  ...  in environment_name. Header must be filled correctly.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...
+  ...  *Return:*
+  ...  - formatted list of services.
+  ...
+  ...  *Examples:*
+  ...  | Get List of All Services | env001 |
+  ${env_id}  Get Environment ID  ${environment_name}
+  GET request  http://${ip}:8082/environments/${env_id}/activeDirectories
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${resp}  Get Response body
+  ${nice_list} =  Create List
+  @{list}  Convert To List  ${resp['activeDirectories']}
+  : FOR  ${x}  IN  @{list}
+  \  Append To List  ${nice_list}  AD: ${x['name']}, id: ${x['id']}
+  GET request  http://${ip}:8082/environments/${env_id}/webServers
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${resp}  Get Response body
+  @{list}  Convert To List  ${resp['webServers']}
+  : FOR  ${x}  IN  @{list}
+  \  Append To List  ${nice_list}  IIS: ${x['name']}, id: ${x['id']}
+  GET request  http://${ip}:8082/environments/${env_id}/aspNetApps
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${resp}  Get Response body
+  @{list}  Convert To List  ${resp['aspNetApps']}
+  : FOR  ${x}  IN  @{list}
+  \  Append To List  ${nice_list}  ASP NET: ${x['name']}, id: ${x['id']}
+  GET request  http://${ip}:8082/environments/${env_id}/aspNetAppFarms
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${resp}  Get Response body
+  @{list}  Convert To List  ${resp['aspNetAppFarms']}
+  : FOR  ${x}  IN  @{list}
+  \  Append To List  ${nice_list}  ASP NET Farm: ${x['name']}, id: ${x['id']}
+  GET request  http://${ip}:8082/environments/${env_id}/webServerFarms
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${resp}  Get Response body
+  @{list}  Convert To List  ${resp['webServerFarms']}
+  : FOR  ${x}  IN  @{list}
+  \  Append To List  ${nice_list}  IIS Farm: ${x['name']}, id: ${x['id']}
+  [Return]  ${nice_list}
+
+Check Environment
+  [Arguments]  ${environment_name}  ${status}
+  [Documentation]  Checks environment for given status.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name:  environment name.
+  ...  - status: environment status.
+  ...
+  ...  *Return:*
+  ...  - None.
+  ...
+  ...  *Examples:*
+  ...  | Check Environment | test01 | ready |
+  ${r2}  Get session reports  ${environment_name}  ${session_id}
+  ${r3}  Format session report  ${r2}
+  Log List  ${r3}
+  ${env_id}  Get Environment ID  ${environment_name}
+  ${environment_status}  Set Variable  None
+  ${data}  Get List Of Environments
+  @{environments_list}  Convert To List  ${data['environments']}
+  : FOR  ${x}  IN  @{environments_list}
+  \  ${environment_status} =  Set Variable If  "${x['name']}" == "${environment_name}"  ${x['status']}  ${environment_status}
+  Log  ${environment_status}
+  Should Be Equal  ${status}  ${environment_status}
+
+Create Session
+  [Arguments]  ${environment_name}
+  [Documentation]  Sends POST request to create new session
+  ...  in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name:  environment name.
+  ...  - status: environment status.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | ${result} | Create Session | env001 |
+  ${env_id}  Get Environment ID  ${environment_name}
+  POST request without body  http://${ip}:8082/environments/${env_id}/configure
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${resp}  Get Response body
+  ${session_id}  Set Variable  ${resp['id']}
+  Log  ${session_id}
+  Update Headers  X-Configuration-Session  ${session_id}
+  [Return]  ${resp}
+
+Delete session
+  [Arguments]  ${environment_name}  ${session_id}
+  [Documentation]  Sends DELETE request to delete session
+  ...  with session_id in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name:  environment name.
+  ...  - session_id: session id.
+  ...
+  ...  *Return:*
+  ...  - None.
+  ...
+  ...  *Examples:*
+  ...  | Delete Session | ${result['id']} |
+  ${env_id}  Get Environment ID  ${environment_name}
+  DELETE request  http://${ip}:8082/environments/${env_id}/sessions/${session_id}
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+
+Get session information
+  [Arguments]  ${environment_name}  ${session_id}
+  [Documentation]  Sends GET request to get session information
+  ...  with session_id in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name:  environment name.
+  ...  - session_id: session id.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | Get Session Information | ${result['id']} |
+  ${env_id}  Get Environment ID  ${environment_name}
+  GET request  http://${ip}:8082/environments/${env_id}/sessions/${session_id}
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${resp}  Get Response body
+  [Return]  ${resp}
+
+Get session reports
+  [Arguments]  ${environment_name}  ${session_id}
+  [Documentation]  Sends GET request to get session reports
+  ...  with session_id in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name:  environment name.
+  ...  - session_id: session id.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | Get Session Reports | ${result['id']} |
+  ${env_id}  Get Environment ID  ${environment_name}
+  GET request  http://${ip}:8082/environments/${env_id}/sessions/${session_id}/reports
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${resp}  Get Response body
+  [Return]  ${resp}
+
+Format session report
+  [Arguments]  ${session_report}
+  [Documentation]  Formats report to user-friendly view.
+  ...
+  ...  *Arguments:*
+  ...  - session_report: session report.
+  ...
+  ...  *Return:*
+  ...  - formatted session report.
+  ...
+  ...  *Examples:*
+  ...  | ${rep} | Format session report | ${report} |
+  ${nice_list} =  Create List
+  @{list}  Convert To List  ${session_report['reports']}
+  : FOR  ${x}  IN  @{list}
+  \  Append To List  ${nice_list}  time: ${x['created']}, text: ${x['text']}
+  Log List  ${nice_list}
+  [Return]  ${nice_list}
+
+Deploy session
+  [Arguments]  ${environment_name}  ${session_id}
+  [Documentation]  Sends POST request to deploy session
+  ...  with session_id in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...  - session_id: session id.
+  ...
+  ...  *Return:*
+  ...  - None.
+  ...
+  ...  *Examples:*
+  ...  | Deploy Session | ${result['id']} |
+  ${env_id}  Get Environment ID  ${environment_name}
+  POST request without body  http://${ip}:8082/environments/${env_id}/sessions/${session_id}/deploy
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+
+Try to delete session
+  [Arguments]  ${environment_name}  ${session_id}
+  [Documentation]  Sends DELETE request to delete session
+  ...  with session_id in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...  - session_id: session id.
+  ...
+  ...  *Return:*
+  ...  - None.
+  ...
+  ...  *Examples:*
+  ...  | Delete Session | ${result['id']} |
+  ${env_id}  Get Environment ID  ${environment_name}
+  DELETE request  http://${ip}:8082/environments/${env_id}/sessions/${session_id}
+
+Create AD
+  [Arguments]  ${environment_name}  ${AD_name}
+  [Documentation]  Sends POST request to create new AD
+  ...  in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...  - AD_name: AD name.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | Create AD | env001 | ad001 |
+  ${env_id}  Get Environment ID  ${environment_name}
+  ${auth}  Set Variable  {"name": "${AD_name}", "adminPassword": "swordfish", "domain": "acme.dc", "units": [{"isMaster": true, "recoveryPassword": "swordfish", "location": "west-dc"}, {"isMaster": false, "recoveryPassword": "swordfish", "location": "west-dc"}]}
+  Set Body  ${auth}
+  POST request  http://${ip}:8082/environments/${env_id}/activeDirectories
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${resp}  Get Response body
+  [Return]  ${resp}
+
+Get List of AD
+  [Arguments]  ${environment_name}
+  [Documentation]  Sends GET request to list all AD's
+  ...  in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | Get List of AD | env001 |
+  ${env_id}  Get Environment ID  ${environment_name}
+  GET request  http://${ip}:8082/environments/${env_id}/activeDirectories
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${resp}  Get Response body
+  [Return]  ${resp}
+
+Delete AD
+  [Arguments]  ${environment_name}  ${AD_name}
+  [Documentation]  Sends DELETE request to delete AD
+  ...  in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...  - AD_name: AD name.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | Delete AD | env001 | ad001 |
+  ${env_id}  Get Environment ID  ${environment_name}
+  ${ad_id}  Set Variable  None
+  ${data}  Get List of AD  ${environment_name}
+  @{ad_list}  Convert To List  ${data['activeDirectories']}
+  : FOR  ${x}  IN  @{ad_list}
+  \  ${ad_id} =  Set Variable If  "${x['name']}" == "${AD_name}"  ${x['id']}  ${ad_id}
+  DELETE request  http://${ip}:8082/environments/${env_id}/activeDirectories/${ad_id}
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+
+Create IIS
+  [Arguments]  ${environment_name}  ${IIS_name}
+  [Documentation]  Sends POST request to create new AD
+  ...  in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...  - IIS_name: IIS name.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | Create IIS | env001 | iis001 |
+  ${env_id}  Get Environment ID  ${environment_name}
+  ${auth}  Set Variable  {"name": "${IIS_name}", "adminPassword": "swordfish", "domain": "acme.dc", "units": [{}]}
+  Set Body  ${auth}
+  POST request  http://${ip}:8082/environments/${env_id}/webServers
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${resp}  Get Response body
+  [Return]  ${resp}
+
+Get List of IIS
+  [Arguments]  ${environment_name}
+  [Documentation]  Sends GET request to list all IIS's
+  ...  in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | Get List of IIS | env001 |
+  ${env_id}  Get Environment ID  ${environment_name}
+  GET request  http://${ip}:8082/environments/${env_id}/webServers
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${resp}  Get Response body
+  [Return]  ${resp}
+
+Delete IIS
+  [Arguments]  ${environment_name}  ${IIS_name}
+  [Documentation]  Sends DELETE request to delete IIS
+  ...  in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...  - IIS_name: IIS name.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | Delete IIS | env001 | iis001 |
+  ${env_id}  Get Environment ID  ${environment_name}
+  ${iis_id}  Set Variable  None
+  ${data}  Get List of IIS  ${environment_name}
+  @{iis_list}  Convert To List  ${data['webServers']}
+  : FOR  ${x}  IN  @{iis_list}
+  \  ${iis_id} =  Set Variable If  "${x['name']}" == "${IIS_name}"  ${x['id']}  ${iis_id}
+  DELETE request  http://${ip}:8082/environments/${env_id}/webServers/${iis_id}
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+
+Create ASP NET
+  [Arguments]  ${environment_name}  ${ASP_name}
+  [Documentation]  Sends POST request to create new AD
+  ...  in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...  - ASP_name: ASP name.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | Create ASP NET | asp001 |
+  ${env_id}  Get Environment ID  ${environment_name}
+  ${auth}  Set Variable  {"name": "${ASP_name}", "credentials": {"username": "Administrator","password": "swordfish"}, "domain": "acme.dc", "adminPassword": "swordfish", "units":[{}], "repository": "git://github.com/Mirantis/murano-mvc-demo.git"}
+  Set Body  ${auth}
+  POST request  http://${ip}:8082/environments/${env_id}/aspNetApps
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${resp}  Get Response Body
+  [Return]  ${resp}
+
+Get List of ASP NET
+  [Arguments]  ${environment_name}
+  [Documentation]  Sends GET request to list all IIS's
+  ...  in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | List ASP NET |
+  ${env_id}  Get Environment ID  ${environment_name}
+  GET request  http://${ip}:8082/environments/${env_id}/aspNetApps
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${resp}  Get Response Body
+  [Return]  ${resp}
+
+Delete ASP NET
+  [Arguments]  ${environment_name}  ${ASP_name}
+  [Documentation]  Sends DELETE request to delete IIS
+  ...  in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...  - ASP_name: ASP name.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | Delete ASP NET | asp001 |
+  ${env_id}  Get Environment ID  ${environment_name}
+  ${asp_id}  Set Variable  None
+  ${data}  Get List of ASP NET  ${environment_name}
+  @{asp_list}  Convert To List  ${data['aspNetApps']}
+  : FOR  ${x}  IN  @{asp_list}
+  \  ${asp_id} =  Set Variable If  "${x['name']}" == "${ASP_name}"  ${x['id']}  ${asp_id}
+  DELETE request  http://${ip}:8082/environments/${env_id}/aspNetApps/${asp_id}
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+
+Create IIS Farm
+  [Arguments]  ${environment_name}  ${IIS_Farm_name}
+  [Documentation]  Sends POST request to create new AD
+  ...  in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...  - IIS_Farm_name: IIS farm name.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | Create IIS Farm | env001 | iisFarm001 |
+  ${env_id}  Get Environment ID  ${environment_name}
+  ${auth}  Set Variable  {"name": "${IIS_Farm_name}", "adminPassword": "swordfish", "domain": "acme.dc", "units": [{}], "loadBalancerPort": "80"}
+  Set Body  ${auth}
+  POST request  http://${ip}:8082/environments/${env_id}/webServerFarms
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${resp}  Get Response body
+  [Return]  ${resp}
+
+Get List of IIS Farm
+  [Arguments]  ${environment_name}
+  [Documentation]  Sends GET request to list all IIS's
+  ...  in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | Get List of IIS Farm | env001 |
+  ${env_id}  Get Environment ID  ${environment_name}
+  GET request  http://${ip}:8082/environments/${env_id}/webServerFarms
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${resp}  Get Response body
+  [Return]  ${resp}
+
+Delete IIS Farm
+  [Arguments]  ${environment_name}  ${IIS_Farm_name}
+  [Documentation]  Sends DELETE request to delete IIS
+  ...  in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...  - IIS_Farm_name: IIS farm name.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | Delete IIS Farm | env001 | iis001 |
+  ${env_id}  Get Environment ID  ${environment_name}
+  ${iis_Farm_id}  Set Variable  None
+  ${data}  Get List of IIS Farm  ${environment_name}
+  @{iis_Farm_list}  Convert To List  ${data['webServerFarms']}
+  : FOR  ${x}  IN  @{iis_Farm_list}
+  \  ${iis_Farm_id} =  Set Variable If  "${x['name']}" == "${IIS_Farm_name}"  ${x['id']}  ${iis_Farm_id}
+  DELETE request  http://${ip}:8082/environments/${env_id}/webServerFarms/${iis_Farm_id}
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+
+Create ASP NET Farm
+  [Arguments]  ${environment_name}  ${ASP_Farm_name}
+  [Documentation]  Sends POST request to create new AD
+  ...  in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...  - ASP_Farm_name: ASP farm name.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | Create ASP NET Farm | asp001 |
+  ${env_id}  Get Environment ID  ${environment_name}
+  ${auth}  Set Variable  {"name": "${ASP_Farm_name}", "credentials": {"username": "Administrator","password": "swordfish"}, "domain": "acme.dc", "adminPassword": "swordfish", "units":[{}], "repository": "git://github.com/Mirantis/murano-mvc-demo.git", "loadBalancerPort": "80"}
+  Set Body  ${auth}
+  POST request  http://${ip}:8082/environments/${env_id}/aspNetAppFarms
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${resp}  Get Response Body
+  [Return]  ${resp}
+
+Get List of ASP NET Farm
+  [Arguments]  ${environment_name}
+  [Documentation]  Sends GET request to list all IIS's
+  ...  in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | List ASP NET Farm |
+  ${env_id}  Get Environment ID  ${environment_name}
+  GET request  http://${ip}:8082/environments/${env_id}/aspNetAppFarms
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}
+  ${resp}  Get Response Body
+  [Return]  ${resp}
+
+Delete ASP NET Farm
+  [Arguments]  ${environment_name}  ${ASP_Farm_name}
+  [Documentation]  Sends DELETE request to delete IIS
+  ...  in environment_name.
+  ...
+  ...  *Arguments:*
+  ...  - environment_name: environment name.
+  ...  - ASP_Farm_name: ASP farm name.
+  ...
+  ...  *Return:*
+  ...  - response body.
+  ...
+  ...  *Examples:*
+  ...  | Delete ASP NET Farm | asp001 |
+  ${env_id}  Get Environment ID  ${environment_name}
+  ${asp_Farm_id}  Set Variable  None
+  ${data}  Get List of ASP NET Farm  ${environment_name}
+  @{asp_Farm_list}  Convert To List  ${data['aspNetAppFarms']}
+  : FOR  ${x}  IN  @{asp_Farm_list}
+  \  ${asp_Farm_id} =  Set Variable If  "${x['name']}" == "${ASP_Farm_name}"  ${x['id']}  ${asp_Farm_id}
+  DELETE request  http://${ip}:8082/environments/${env_id}/aspNetAppFarms/${asp_Farm_id}
+  ${resp_code}  Get Response Code
+  Should Be Equal As Integers  200  ${resp_code}

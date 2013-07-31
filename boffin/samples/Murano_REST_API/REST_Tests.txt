@@ -1,0 +1,491 @@
+*** Settings ***
+Library         Collections
+Resource        libs/MuranoRest.txt
+
+*** Variables ***
+${ip}           172.18.124.201
+${ip_keystone}  172.18.124.201
+${user}         muranorestapi
+${password}     swordfish
+
+*** Test Cases ***
+Begin of testing
+  [Tags]  thread1
+  Get X-Auth-Token  ${ip_keystone}
+  Get Headers
+
+Clearing
+  [Tags]  thread1
+  #Delete All Environments  # закоментировано так, на всякий случай.....
+  ${result}  Get List Of Environments
+  #Should Be Empty  ${result['environments']}
+
+Get list of environments
+  [Tags]  thread1
+  ${result}  Get List Of Environments
+  ${list}  Format List  ${result['environments']}
+  Log List  ${list}
+
+Create environment
+  [Tags]  thread1
+  Create Environment  test-rest-api-env2
+
+Create/edit/delete environment
+  [Tags]  thread1
+  ${result}  Get List Of Environments
+  ${len}  Get Length  ${result['environments']}
+  ${list}  Format List  ${result['environments']}
+  Log List  ${list}
+  Create Environment  env_2_del
+  ${result}  Get List Of Environments
+  ${len1}  Get Length  ${result['environments']}
+  ${len1} =  Evaluate  ${len1} - 1
+  Should Be Equal As Integers  ${len}  ${len1}
+  ${list}  Format List  ${result['environments']}
+  Log List  ${list}
+  ${env_id}  Get Environment ID  env_2_modify
+  Should Be Equal  ${env_id}  None
+  Update Environment  env_2_del  env_2_modify
+  ${result}  Get List Of Environments
+  ${list}  Format List  ${result['environments']}
+  Log List  ${list}
+  ${env_id}  Get Environment ID  env_2_modify
+  Should Not Be Equal  ${env_id}  None
+  Delete Environment  env_2_modify
+  ${result}  Get List Of Environments
+  ${len2}  Get Length  ${result['environments']}
+  #Should Be Equal As Integers  ${len}  ${len2}
+  ${list}  Format List  ${result['environments']}
+  Log List  ${list}
+
+Get Environment_ID of previosly created environment
+  [Tags]  thread1
+  ${result}  Get Environment ID  test-rest-api-env2
+  Should Not Be Empty  ${result}
+
+Create session to previosly created environment
+  [Tags]  thread1
+  ${result}  Create session  test-rest-api-env2
+  Set Global Variable  ${session_id}  ${result['id']}
+  #${session_id}  Set Variable  ${result['id']}
+  Should Not Be Empty  ${result['id']}
+
+Get session information_1
+  [Tags]  thread1
+  Log  ${session_id}
+  ${result}  Get session information  test-rest-api-env2  ${session_id}
+
+Delete session
+  [Tags]  thread1
+  ${result}  Delete session  test-rest-api-env2  ${session_id}
+
+Get session information_2 and almost empty report
+  [Tags]  thread1
+  ${result}  Create session  test-rest-api-env2
+  Set Global Variable  ${session_id}  ${result['id']}
+  ${result}  Get session information  test-rest-api-env2  ${session_id}
+  ${result}  Get session reports  test-rest-api-env2  ${session_id}
+
+Create AD service
+  [Tags]  thread1
+  Create AD  test-rest-api-env2  ad001
+
+List AD services
+  [Tags]  thread1
+  ${result}  Get List of AD  test-rest-api-env2
+  ${list}  Format List  ${result['activeDirectories']}
+  Log List  ${list}
+  ${len}  Get Length  ${result['activeDirectories']}
+  Should Be Equal as Integers  1  ${len}
+
+Delete AD service
+  [Tags]  thread1
+  Delete AD  test-rest-api-env2  ad001
+  ${result}  Get List of AD  test-rest-api-env2
+  ${len}  Get Length  ${result['activeDirectories']}
+  Should Be Equal as Integers  ${len}  0
+
+Create IIS service
+  [Tags]  thread1
+  Create IIS  test-rest-api-env2  iis001
+
+List IIS services
+  [Tags]  thread1
+  ${result}  Get List of IIS  test-rest-api-env2
+  ${list}  Format List  ${result['webServers']}
+  Log List  ${list}
+  ${len}  Get Length  ${result['webServers']}
+  Should Be Equal as Integers  1  ${len}
+
+Delete IIS service
+  [Tags]  thread1
+  Delete IIS  test-rest-api-env2  iis001
+  ${result}  Get List of IIS  test-rest-api-env2
+  ${len}  Get Length  ${result['webServers']}
+  Should Be Equal as Integers  ${len}  0
+
+Create ASP NET service
+  [Tags]  thread1
+  Create ASP NET  test-rest-api-env2  asp001
+
+List ASP NET services
+  [Tags]  thread1
+  ${result}  Get List of ASP NET  test-rest-api-env2
+  ${list}  Format List  ${result['aspNetApps']}
+  Log List  ${list}
+  ${len}  Get Length  ${result['aspNetApps']}
+  Should Be Equal as Integers  1  ${len}
+
+Delete ASP NET service
+  [Tags]  thread1
+  Delete ASP NET  test-rest-api-env2  asp001
+  ${result}  Get List of ASP NET  test-rest-api-env2
+  ${len}  Get Length  ${result['aspNetApps']}
+  Should Be Equal as Integers  ${len}  0
+
+Create ASP NET Farm service
+  [Tags]  thread1
+  Create ASP NET Farm  test-rest-api-env2  aspFarm001
+
+List ASP NET Farm services
+  [Tags]  thread1
+  ${result}  Get List of ASP NET Farm  test-rest-api-env2
+  ${list}  Format List  ${result['aspNetAppFarms']}
+  Log List  ${list}
+  ${len}  Get Length  ${result['aspNetAppFarms']}
+  Should Be Equal as Integers  1  ${len}
+
+Delete ASP NET Farm service
+  [Tags]  thread1
+  Delete ASP NET Farm  test-rest-api-env2  aspFarm001
+  ${result}  Get List of ASP NET Farm  test-rest-api-env2
+  ${len}  Get Length  ${result['aspNetAppFarms']}
+  Should Be Equal as Integers  ${len}  0
+
+Create IIS Farm service
+  [Tags]  thread1
+  Create IIS Farm  test-rest-api-env2  iisFarm001
+
+List IIS Farm services
+  [Tags]  thread1
+  ${result}  Get List of IIS Farm  test-rest-api-env2
+  ${list}  Format List  ${result['webServerFarms']}
+  Log List  ${list}
+  ${len}  Get Length  ${result['webServerFarms']}
+  Should Be Equal as Integers  1  ${len}
+
+Delete IIS Farm service
+  [Tags]  thread1
+  Delete IIS Farm  test-rest-api-env2  iisFarm001
+  ${result}  Get List of IIS Farm  test-rest-api-env2
+  ${len}  Get Length  ${result['webServerFarms']}
+  Should Be Equal as Integers  ${len}  0
+
+Create some services
+  [Tags]  thread1
+  Create AD  test-rest-api-env2  ad001
+  Create AD  test-rest-api-env2  ad002
+  Create AD  test-rest-api-env2  ad005
+  Create ASP NET  test-rest-api-env2  asp005
+  Create ASP NET  test-rest-api-env2  asp005
+  Create IIS Farm  test-rest-api-env2  iisFarm002
+  Create ASP NET  test-rest-api-env2  asp006
+  Create ASP NET Farm  test-rest-api-env2  aspFarm005
+  Create ASP NET Farm  test-rest-api-env2  aspfarm005
+  Create IIS  test-rest-api-env2  iis003
+  Create IIS Farm  test-rest-api-env2  iisFarm003
+  Create IIS  test-rest-api-env2  iis001
+  Create IIS  test-rest-api-env2  iis_001
+  Create IIS  test-rest-api-env2  iis001
+  Create IIS  test-rest-api-env2  iis002
+  Create AD  test-rest-api-env2  ad001
+  Create IIS Farm  test-rest-api-env2  iisFarm002
+  Create IIS Farm  test-rest-api-env2  iisFarm004
+  Create IIS Farm  test-rest-api-env2  iisFarm005
+  Create IIS Farm  test-rest-api-env2  iisFarm006
+  # View all services
+  ${list}  Get List of All Services  test-rest-api-env2
+  Log List  ${list}
+  # Check number of ADs
+  ${result}  Get List of AD  test-rest-api-env2
+  ${list}  Format List  ${result['activeDirectories']}
+  Log List  ${list}
+  ${len}  Get Length  ${result['activeDirectories']}
+  Should Be Equal as Integers  4  ${len}
+  # Check number of IISs
+  ${result}  Get List of IIS  test-rest-api-env2
+  ${list}  Format List  ${result['webServers']}
+  Log List  ${list}
+  ${len}  Get Length  ${result['webServers']}
+  Should Be Equal as Integers  5  ${len}
+  # Check number of ASP NETs
+  ${result}  Get List of ASP NET  test-rest-api-env2
+  ${list}  Format List  ${result['aspNetApps']}
+  Log List  ${list}
+  ${len}  Get Length  ${result['aspNetApps']}
+  Should Be Equal as Integers  3  ${len}
+  # Check number of IIS Farms
+  ${result}  Get List of IIS Farm  test-rest-api-env2
+  ${list}  Format List  ${result['webServerFarms']}
+  Log List  ${list}
+  ${len}  Get Length  ${result['webServerFarms']}
+  Should Be Equal as Integers  6  ${len}
+  # Check number of ASP NET Farms
+  ${result}  Get List of ASP NET Farm  test-rest-api-env2
+  ${list}  Format List  ${result['aspNetAppFarms']}
+  Log List  ${list}
+  ${len}  Get Length  ${result['aspNetAppFarms']}
+  Should Be Equal as Integers  2  ${len}
+
+Test of multisession
+  [Tags]  thread1
+  # Store session
+  ${session1_1}  Set Variable  ${session_id}
+  # Create additional sessions
+  ${result}  Create session  test-rest-api-env2
+  ${session1_2}  Set Variable  ${result['id']}
+  ${result}  Create session  test-rest-api-env2
+  ${session1_3}  Set Variable  ${result['id']}
+  # Stage 1: Begin of create some services ===================
+  Update Headers  X-Configuration-Session  ${session1_1}
+  Create AD  test-rest-api-env2  ad001
+  Create AD  test-rest-api-env2  ad002
+  Create ASP NET  test-rest-api-env2  asp005
+  Create ASP NET  test-rest-api-env2  asp005
+  Create IIS Farm  test-rest-api-env2  iisFarm002
+  Create ASP NET  test-rest-api-env2  asp006
+  Create ASP NET Farm  test-rest-api-env2  aspFarm005
+  Create ASP NET Farm  test-rest-api-env2  aspfarm005
+  Create IIS  test-rest-api-env2  iis003
+  # View all services
+  ${list}  Get List of All Services  test-rest-api-env2
+  Log List  ${list}
+  Update Headers  X-Configuration-Session  ${session1_2}
+  Create AD  test-rest-api-env2  ad001
+  Create ASP NET  test-rest-api-env2  asp005
+  Create ASP NET  test-rest-api-env2  asp005
+  Create IIS Farm  test-rest-api-env2  iisFarm002
+  Create ASP NET  test-rest-api-env2  asp006
+  # View all services
+  ${list}  Get List of All Services  test-rest-api-env2
+  Log List  ${list}
+  Update Headers  X-Configuration-Session  ${session1_3}
+  Create ASP NET  test-rest-api-env2  asp005_3
+  Create ASP NET  test-rest-api-env2  asp005_3
+  Create IIS Farm  test-rest-api-env2  iisFarm002_3
+  Create ASP NET  test-rest-api-env2  asp006_3
+  Create ASP NET Farm  test-rest-api-env2  aspFarm005_3
+  Create ASP NET Farm  test-rest-api-env2  aspfarm005_3
+  Create IIS  test-rest-api-env2  iis003_3
+  Create IIS Farm  test-rest-api-env2  iisFarm003_3
+  Create IIS  test-rest-api-env2  iis001_3
+  Create IIS  test-rest-api-env2  iis_001_3
+  Create IIS  test-rest-api-env2  iis001_3
+  Create IIS  test-rest-api-env2  iis002_3
+  Create IIS Farm  test-rest-api-env2  iisFarm002_3
+  Create IIS Farm  test-rest-api-env2  iisFarm004_3
+  # View all services
+  ${list}  Get List of All Services  test-rest-api-env2
+  Log List  ${list}
+  # Stage 2: End of create some services ===================
+  Update Headers  X-Configuration-Session  ${session1_1}
+  Create IIS Farm  test-rest-api-env2  iisFarm003
+  Create IIS  test-rest-api-env2  iis001
+  Create IIS  test-rest-api-env2  iis002
+  Create AD  test-rest-api-env2  ad001
+  Create IIS Farm  test-rest-api-env2  iisFarm002
+  Create IIS Farm  test-rest-api-env2  iisFarm004
+  Create IIS Farm  test-rest-api-env2  iisFarm005
+  Create IIS Farm  test-rest-api-env2  iisFarm006
+  # View all services
+  ${list}  Get List of All Services  test-rest-api-env2
+  Log List  ${list}
+  Update Headers  X-Configuration-Session  ${session1_2}
+  Create ASP NET Farm  test-rest-api-env2  aspFarm005
+  Create ASP NET Farm  test-rest-api-env2  aspfarm005
+  Create IIS  test-rest-api-env2  iis003
+  Create IIS Farm  test-rest-api-env2  iisFarm003
+  Create IIS  test-rest-api-env2  iis001
+  Create IIS  test-rest-api-env2  iis_001
+  Create IIS  test-rest-api-env2  iis002
+  Create AD  test-rest-api-env2  ad001
+  Create IIS Farm  test-rest-api-env2  iisFarm002
+  Create IIS Farm  test-rest-api-env2  iisFarm005
+  Create IIS Farm  test-rest-api-env2  iisFarm006
+  # View all services
+  ${list}  Get List of All Services  test-rest-api-env2
+  Log List  ${list}
+  Update Headers  X-Configuration-Session  ${session1_3}
+  Create AD  test-rest-api-env2  ad001_3
+  Create IIS Farm  test-rest-api-env2  iisFarm005_3
+  Create IIS Farm  test-rest-api-env2  iisFarm006_3
+  # === View services in all sessions ===
+  Update Headers  X-Configuration-Session  ${session1_1}
+  # View all services
+  ${list}  Get List of All Services  test-rest-api-env2
+  Log List  ${list}
+  Update Headers  X-Configuration-Session  ${session1_2}
+  # View all services
+  ${list}  Get List of All Services  test-rest-api-env2
+  Log List  ${list}
+  Update Headers  X-Configuration-Session  ${session1_3}
+  # View all services
+  ${list}  Get List of All Services  test-rest-api-env2
+  Log List  ${list}
+  # Need control of number created services
+  # Stage 3: delete some services ===================
+  Delete IIS  test-rest-api-env2  iis_001_3
+  Delete IIS  test-rest-api-env2  iis002_3
+  Delete IIS Farm  test-rest-api-env2  iisFarm006_3
+  Delete ASP NET Farm  test-rest-api-env2  aspfarm005_3
+  Delete AD  test-rest-api-env2  ad001_3
+  # View all services
+  ${list}  Get List of All Services  test-rest-api-env2
+  Log List  ${list}
+  Update Headers  X-Configuration-Session  ${session1_2}
+  Delete IIS  test-rest-api-env2  iis_001
+  Delete IIS  test-rest-api-env2  iis002
+  Delete AD  test-rest-api-env2  ad001
+  Delete IIS Farm  test-rest-api-env2  iisFarm006
+  # View all services
+  ${list}  Get List of All Services  test-rest-api-env2
+  Log List  ${list}
+  Update Headers  X-Configuration-Session  ${session1_1}
+  Delete AD  test-rest-api-env2  ad001
+  Delete AD  test-rest-api-env2  ad002
+  #Delete ASP NET  test-rest-api-env2  asp005
+  #Delete ASP NET  test-rest-api-env2  asp005
+  #Delete IIS Farm  test-rest-api-env2  iisFarm002
+  Delete ASP NET  test-rest-api-env2  asp006
+  #Delete ASP NET Farm  test-rest-api-env2  aspFarm005
+  Delete ASP NET Farm  test-rest-api-env2  aspfarm005
+  Delete IIS  test-rest-api-env2  iis003
+  #Delete IIS Farm  test-rest-api-env2  iisFarm003
+  Delete IIS  test-rest-api-env2  iis001
+  Delete IIS  test-rest-api-env2  iis002
+  Delete AD  test-rest-api-env2  ad001
+  #Delete IIS Farm  test-rest-api-env2  iisFarm002
+  #Delete IIS Farm  test-rest-api-env2  iisFarm004
+  #Delete IIS Farm  test-rest-api-env2  iisFarm005
+  # Create IIS Farm  test-rest-api-env2  iisFarm006 - must be only this
+  # View all services
+  ${list}  Get List of All Services  test-rest-api-env2
+  Log List  ${list}
+  # View all services
+  ${list}  Get List of All Services  test-rest-api-env2
+  Log List  ${list}
+  Update Headers  X-Configuration-Session  ${session1_1}
+
+Deploy one AD
+  Create environment  4kate-ad
+  ${result}  Create session  4kate-ad
+  Set Global Variable  ${session_id}  ${result['id']}
+  Create AD  4kate-ad  AD_2_deploy
+  Deploy session  4kate-ad  ${session_id}
+  ${rep}  Get session reports  4kate-ad  ${session_id}
+  Wait Until Keyword Succeeds  20m  5s  Check Environment  4kate-ad  ready
+  Get Environment ID  4kate-ad
+  ${rep2}  Get session reports  4kate-ad  ${session_id}
+  ${rep3}  Format session report  ${rep2}
+  Log List  ${rep3}
+  #  Delete environment  bigden-ad
+
+Deploy one IIS
+  Create environment  bigden-iis
+  ${result}  Create session  bigden-iis
+  Set Global Variable  ${session_id}  ${result['id']}
+  Create IIS  bigden-iis  IIS_2_deploy
+  Deploy session  bigden-iis  ${session_id}
+  ${rep}  Get session reports  bigden-iis  ${session_id}
+  Wait Until Keyword Succeeds  20m  5s  Check Environment  bigden-iis  ready
+  Get Environment ID  bigden-iis
+  ${rep2}  Get session reports  bigden-iis  ${session_id}
+  ${rep3}  Format session report  ${rep2}
+  Log List  ${rep3}
+  Delete environment  bigden-iis
+
+Deploy one ASP.NET
+  Create environment  bigden-asp
+  ${result}  Create session  bigden-asp
+  Set Global Variable  ${session_id}  ${result['id']}
+  Create ASP NET  bigden-asp  ASP_2_deploy
+  Deploy session  bigden-asp  ${session_id}
+  ${rep}  Get session reports  bigden-asp  ${session_id}
+  Wait Until Keyword Succeeds  20m  5s  Check Environment  bigden-asp  ready
+  Get Environment ID  bigden-asp
+  ${rep2}  Get session reports  bigden-asp  ${session_id}
+  ${rep3}  Format session report  ${rep2}
+  Log List  ${rep3}
+  Delete environment  bigden-asp
+
+Deploy one ASP.NET Farm
+  Create environment  bigden-asp-farm
+  ${result}  Create session  bigden-asp-farm
+  Set Global Variable  ${session_id}  ${result['id']}
+  Create ASP NET Farm  +  ASP-Farm_2_deploy
+  Deploy session  bigden-asp-farm  ${session_id}
+  ${rep}  Get session reports  bigden-asp-farm  ${session_id}
+  Wait Until Keyword Succeeds  20m  5s  Check Environment  bigden-asp-farm  ready
+  Get Environment ID  bigden-asp-farm
+  ${rep2}  Get session reports  bigden-asp-farm  ${session_id}
+  ${rep3}  Format session report  ${rep2}
+  Log List  ${rep3}
+  Delete environment  bigden-asp-farm
+
+Deploy one IIS Farm
+  Create environment  bigden-iis-farm
+  ${result}  Create session  bigden-iis-farm
+  Set Global Variable  ${session_id}  ${result['id']}
+  Create IIS Farm  bigden-iis-farm  IIS-Farm_2_deploy
+  Deploy session  bigden-iis-farm  ${session_id}
+  ${rep}  Get session reports  bigden-iis-farm  ${session_id}
+  Wait Until Keyword Succeeds  20m  5s  Check Environment  bigden-iis-farm  ready
+  Get Environment ID  bigden-iis-farm
+  ${rep2}  Get session reports  bigden-iis-farm  ${session_id}
+  ${rep3}  Format session report  ${rep2}
+  Log List  ${rep3}
+  Delete environment  bigden-iis-farm
+
+Sequence deploy
+  Create environment  bigden-all_service
+  ${result}  Create session  bigden-all_service
+  Set Global Variable  ${session_id}  ${result['id']}
+  Create AD  bigden-all_service  AD_2_deploy
+  Create IIS  bigden-all_service  IIS_2_deploy
+  Create ASP NET  bigden-all_service  ASP.NET_2_deploy
+  Create ASP NET Farm  bigden-all_service  ASP.NET_Farm_2_deploy
+  Create IIS Farm  bigden-all_service  IIS_Farm_2_deploy
+  Deploy session  bigden-all_service  ${session_id}
+  ${rep}  Get session reports  bigden-all_service  ${session_id}
+  Wait Until Keyword Succeeds  60m  10s  Check Environment  bigden-all_service  ready
+  Get Environment ID  bigden-all_service
+  ${rep2}  Get session reports  bigden-all_service  ${session_id}
+  ${rep3}  Format session report  ${rep2}
+  Log List  ${rep3}
+  Delete environment  bigden-all_service
+
+Delete created environments
+  [Tags]  thread1
+  Delete Environment  test-rest-api-env2
+
+Delete session after deploy
+  Create environment  bigden-ad
+  ${result}  Create session  bigden-ad
+  Set Global Variable  ${session_id}  ${result['id']}
+  Create IIS  bigden-ad  IIS_2_deploy
+  Deploy session  bigden-ad  ${session_id}
+  ${rep}  Get session reports  bigden-ad  ${session_id}
+  Wait Until Keyword Succeeds  60m  20s  Check Environment  bigden-ad  ready
+  Get Environment ID  bigden-ad
+  ${rep2}  Get session reports  bigden-ad  ${session_id}
+  ${rep3}  Format session report  ${rep2}
+  Log List  ${rep3}
+  Try to delete session  bigden-ad  ${session_id}
+  Delete environment  bigden-ad
+  Try to delete session  bigden-ad  ${session_id}
+
+*** Keywords ***
+Compare reports
+  [Arguments]  ${rep_2_compare}  ${ASP_Farm_name}
+  ${rep2}  Get session reports  test-rest-api-env2  ${session_id}
+  Should Not Be Equal  ${rep}  ${rep2}

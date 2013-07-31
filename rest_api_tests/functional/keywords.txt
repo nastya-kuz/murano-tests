@@ -3,7 +3,7 @@ Library           simple_REST.py
 Library           Collections
 
 *** Variables ***
-${ip}             172.18.79.80
+${ip}             172.18.79.83
 ${ip_keystone}    172.18.124.201
 ${user}           admin
 ${project}        admin
